@@ -1,0 +1,16 @@
+// setup configuration with the Dockerfile in this directory
+{
+    "name": "Ludwig",
+    "dockerFile": "Dockerfile",
+    // add volume to mount the current directory into the container
+    "mounts": [
+        "source=${localWorkspaceFolder},target=/workspace,type=bind,consistency=cached"
+    ],
+	"customizations": {
+		"vscode": {
+			"extensions": [
+                "ms-python.python"			
+            ]
+		}
+    }	    
+}
