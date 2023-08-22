@@ -1,38 +1,34 @@
-import math
-
+import os
 import torch
+import tempfile
 import pytorch_lightning as pl
+import torch.nn.functional as F
 from filelock import FileLock
+from torchmetrics import Accuracy
 from torch.utils.data import DataLoader, random_split
-from torch.nn import functional as F
 from torchvision.datasets import MNIST
 from torchvision import transforms
-import os
 
-class LightningMNISTClassifier(pl.LightningModule):
-    """
-    This has been adapted from
-    https://towardsdatascience.com/from-pytorch-to-pytorch-lightning-a-gentle-introduction-b371b7caaf09
-    """
+from ray.train.lightning import LightningTrainer, LightningConfigBuilder
 
-    def __init__(self, config, data_dir=None):
-        super(LightningMNISTClassifier, self).__init__()
 
-        self.data_dir = data_dir or os.getcwd()
-
+class MNISTClassifier(pl.LightningModule):
+    def __init__(self, config):
+        super(MNISTClassifier, self).__init__()
+        self.accuracy = Accuracy("multiclass", num_classes=10)
         self.layer_1_size = config["layer_1_size"]
         self.layer_2_size = config["layer_2_size"]
         self.lr = config["lr"]
-        self.batch_size = config["batch_size"]
 
         # mnist images are (1, 28, 28) (channels, width, height)
         self.layer_1 = torch.nn.Linear(28 * 28, self.layer_1_size)
         self.layer_2 = torch.nn.Linear(self.layer_1_size, self.layer_2_size)
         self.layer_3 = torch.nn.Linear(self.layer_2_size, 10)
+        self.eval_loss = []
+        self.eval_accuracy = []
 
-        self.val_loss_list = []
-        self.val_accuracy_list = []
-        self.test_outputs = []
+    def cross_entropy_loss(self, logits, labels):
+        return F.nll_loss(logits, labels)
 
     def forward(self, x):
         batch_size, channels, width, height = x.size()
@@ -49,15 +45,6 @@ class LightningMNISTClassifier(pl.LightningModule):
 
         return x
 
-    def cross_entropy_loss(self, logits, labels):
-        return F.nll_loss(logits, labels)
-
-    def accuracy(self, logits, labels):
-        _, predicted = torch.max(logits.data, 1)
-        correct = (predicted == labels).sum().item()
-        accuracy = correct / len(labels)
-        return torch.tensor(accuracy)
-
     def training_step(self, train_batch, batch_idx):
         x, y = train_batch
         logits = self.forward(x)
@@ -72,159 +59,140 @@ class LightningMNISTClassifier(pl.LightningModule):
         x, y = val_batch
         logits = self.forward(x)
         loss = self.cross_entropy_loss(logits, y)
-        self.val_loss_list.append(loss)
         accuracy = self.accuracy(logits, y)
-        self.val_accuracy_list.append(accuracy)
-        return accuracy
+        self.eval_loss.append(loss)
+        self.eval_accuracy.append(accuracy)
+        return {"val_loss": loss, "val_accuracy": accuracy}
 
     def on_validation_epoch_end(self):
-        avg_loss = torch.stack(self.val_loss_list).mean()
-        avg_acc = torch.stack(self.val_accuracy_list).mean()
-        self.log("ptl/val_loss", avg_loss)
-        self.log("ptl/val_accuracy", avg_acc)
-
-
-    @staticmethod
-    def download_data(data_dir):
-        transform = transforms.Compose([
-            transforms.ToTensor(),
-            transforms.Normalize((0.1307, ), (0.3081, ))
-        ])
-        with FileLock(os.path.expanduser("~/.data.lock")):
-            return MNIST(data_dir, train=True, download=True, transform=transform)
-
-    def prepare_data(self):
-        mnist_train = self.download_data(self.data_dir)
-
-        self.mnist_train, self.mnist_val = random_split(
-            mnist_train, [55000, 5000])
-
-    def train_dataloader(self):
-        return DataLoader(self.mnist_train, batch_size=int(self.batch_size))
-
-    def val_dataloader(self):
-        return DataLoader(self.mnist_val, batch_size=int(self.batch_size))
+        avg_loss = torch.stack(self.eval_loss).mean()
+        avg_acc = torch.stack(self.eval_accuracy).mean()
+        self.log("ptl/val_loss", avg_loss, sync_dist=True)
+        self.log("ptl/val_accuracy", avg_acc, sync_dist=True)
+        self.eval_loss.clear()
+        self.eval_accuracy.clear()
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
         return optimizer
 
 
-def train_mnist(config):
-    model = LightningMNISTClassifier(config)
-    trainer = pl.Trainer(max_epochs=10, enable_progress_bar=False)
+class MNISTDataModule(pl.LightningDataModule):
+    def __init__(self, batch_size=128):
+        super().__init__()
+        self.data_dir = tempfile.mkdtemp()
+        self.batch_size = batch_size
+        self.transform = transforms.Compose(
+            [transforms.ToTensor(), transforms.Normalize((0.1307,), (0.3081,))]
+        )
 
-    trainer.fit(model)
+    def setup(self, stage=None):
+        with FileLock(f"{self.data_dir}.lock"):
+            mnist = MNIST(
+                self.data_dir, train=True, download=True, transform=self.transform
+            )
+            self.mnist_train, self.mnist_val = random_split(mnist, [55000, 5000])
+
+            self.mnist_test = MNIST(
+                self.data_dir, train=False, download=True, transform=self.transform
+            )
+
+    def train_dataloader(self):
+        return DataLoader(self.mnist_train, batch_size=self.batch_size, num_workers=4)
+
+    def val_dataloader(self):
+        return DataLoader(self.mnist_val, batch_size=self.batch_size, num_workers=4)
+
+    def test_dataloader(self):
+        return DataLoader(self.mnist_test, batch_size=self.batch_size, num_workers=4)
+
+
+default_config = {
+    "layer_1_size": 128,
+    "layer_2_size": 256,
+    "lr": 1e-3,
+}
 
 from pytorch_lightning.loggers import TensorBoardLogger
 from ray import air, tune
-from ray.air import session
-from ray.tune import CLIReporter
-from ray.tune.schedulers import ASHAScheduler, PopulationBasedTraining
-from ray.tune.integration.pytorch_lightning import TuneReportCallback, \
-    TuneReportCheckpointCallback
+from ray.air.config import RunConfig, ScalingConfig, CheckpointConfig
+from ray.tune.schedulers import ASHAScheduler, PopulationBasedTraining# The maximum training epochs
+num_epochs = 5
 
+# Number of sampls from parameter space
+num_samples = 10
 
-# TuneReportCallback(
-#     {
-#         "loss": "ptl/val_loss",
-#         "mean_accuracy": "ptl/val_accuracy"
-#     },
-#     on="validation_end")
+accelerator = "cpu" #"gpu"
 
-def train_mnist_tune(config, num_epochs=10, num_gpus=0, data_dir="~/data"):
-    data_dir = os.path.expanduser(data_dir)
-    model = LightningMNISTClassifier(config, data_dir)
-    trainer = pl.Trainer(
-        max_epochs=num_epochs,
-        # If fractional GPUs passed in, convert to int.
-        # gpus=math.ceil(num_gpus),
-        logger=TensorBoardLogger(
-            save_dir=os.getcwd(), name="", version="."),
-        enable_progress_bar=False,
-        callbacks=[
-            TuneReportCallback(
-                {
-                    "loss": "ptl/val_loss",
-                    "mean_accuracy": "ptl/val_accuracy"
-                },
-                on="validation_end")
-        ])
-    trainer.fit(model)
+dm = MNISTDataModule(batch_size=64)
+logger = TensorBoardLogger(save_dir=os.getcwd(), name="tune-ptl-example", version=".")
 
-config = {
-    "layer_1_size": tune.choice([32, 64, 128]),
-    "layer_2_size": tune.choice([64, 128, 256]),
-    "lr": tune.loguniform(1e-4, 1e-1),
-    "batch_size": tune.choice([32, 64, 128]),
-}
+# Static configs that does not change across trials
+static_lightning_config = (
+    LightningConfigBuilder()
+    .module(cls=MNISTClassifier)
+    .trainer(max_epochs=num_epochs, accelerator=accelerator, logger=logger)
+    .fit_params(datamodule=dm)
+    .checkpointing(monitor="ptl/val_accuracy", save_top_k=2, mode="max")
+    .build()
+)
 
-
-num_epochs = 10
-
-scheduler = ASHAScheduler(
-    max_t=num_epochs,
-    grace_period=1,
-    reduction_factor=2)
-
-
-reporter = CLIReporter(
-    parameter_columns=["layer_1_size", "layer_2_size", "lr", "batch_size"],
-    metric_columns=["loss", "mean_accuracy", "training_iteration"])
-
-gpus_per_trial = 0
-data_dir = "~/data"
-
-train_fn_with_parameters = tune.with_parameters(train_mnist_tune,
-                                                num_epochs=num_epochs,
-                                                num_gpus=gpus_per_trial,
-                                                data_dir=data_dir)
-
-resources_per_trial = {"cpu": 1, "gpu": gpus_per_trial}
-
-def tune_mnist_asha(num_samples=10, num_epochs=10, gpus_per_trial=0, data_dir="~/data"):
-    config = {
+# Searchable configs across different trials
+searchable_lightning_config = (
+    LightningConfigBuilder()
+    .module(config={
         "layer_1_size": tune.choice([32, 64, 128]),
         "layer_2_size": tune.choice([64, 128, 256]),
         "lr": tune.loguniform(1e-4, 1e-1),
-        "batch_size": tune.choice([32, 64, 128]),
-    }
+    })
+    .build()
+)
 
-    scheduler = ASHAScheduler(
-        max_t=num_epochs,
-        grace_period=1,
-        reduction_factor=2)
+# Make sure to also define an AIR CheckpointConfig here
+# to properly save checkpoints in AIR format.
+run_config = RunConfig(
+    checkpoint_config=CheckpointConfig(
+        num_to_keep=2,
+        checkpoint_score_attribute="ptl/val_accuracy",
+        checkpoint_score_order="max",
+    ),
+)
 
-    reporter = CLIReporter(
-        parameter_columns=["layer_1_size", "layer_2_size", "lr", "batch_size"],
-        metric_columns=["loss", "mean_accuracy", "training_iteration"])
+scheduler = ASHAScheduler(max_t=num_epochs, grace_period=1, reduction_factor=2)
 
-    train_fn_with_parameters = tune.with_parameters(train_mnist_tune,
-                                                    num_epochs=num_epochs,
-                                                    num_gpus=gpus_per_trial,
-                                                    data_dir=data_dir)
-    resources_per_trial = {"cpu": 1, "gpu": gpus_per_trial}
-    
+scaling_config = ScalingConfig(
+    num_workers=3, use_gpu=False, resources_per_worker={"CPU": 1, "GPU": 0}
+)
+
+# Define a base LightningTrainer without hyper-parameters for Tuner
+lightning_trainer = LightningTrainer(
+    lightning_config=static_lightning_config,
+    scaling_config=scaling_config,
+    run_config=run_config,
+)
+
+def tune_mnist_asha(num_samples=10):
+    scheduler = ASHAScheduler(max_t=num_epochs, grace_period=1, reduction_factor=2)
+
     tuner = tune.Tuner(
-        tune.with_resources(
-            train_fn_with_parameters,
-            resources=resources_per_trial
-        ),
+        lightning_trainer,
+        param_space={"lightning_config": searchable_lightning_config},
         tune_config=tune.TuneConfig(
-            metric="loss",
-            mode="min",
-            scheduler=scheduler,
+            metric="ptl/val_accuracy",
+            mode="max",
             num_samples=num_samples,
+            scheduler=scheduler,
         ),
         run_config=air.RunConfig(
             name="tune_mnist_asha",
-            progress_reporter=reporter,
         ),
-        param_space=config,
     )
     results = tuner.fit()
+    best_result = results.get_best_result(metric="ptl/val_accuracy", mode="max")
+    print(best_result)
 
-    print("Best hyperparameters found were: ", results.get_best_result().config)
+
+
 
 if __name__ == "__main__":
-    tune_mnist_asha()
+    tune_mnist_asha(num_samples=num_samples)
