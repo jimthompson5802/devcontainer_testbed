@@ -10,6 +10,11 @@ from torchvision.datasets import MNIST
 from torchvision import transforms
 
 from ray.train.lightning import LightningTrainer, LightningConfigBuilder
+from pytorch_lightning.loggers import TensorBoardLogger
+from ray import air, tune
+from ray.air.config import RunConfig, ScalingConfig, CheckpointConfig
+from ray.tune.schedulers import ASHAScheduler, PopulationBasedTraining# The maximum training epochs
+from ray.tune import CLIReporter
 
 
 class MNISTClassifier(pl.LightningModule):
@@ -113,10 +118,7 @@ default_config = {
     "lr": 1e-3,
 }
 
-from pytorch_lightning.loggers import TensorBoardLogger
-from ray import air, tune
-from ray.air.config import RunConfig, ScalingConfig, CheckpointConfig
-from ray.tune.schedulers import ASHAScheduler, PopulationBasedTraining# The maximum training epochs
+
 num_epochs = 5
 
 # Number of sampls from parameter space
@@ -171,6 +173,10 @@ lightning_trainer = LightningTrainer(
     run_config=run_config,
 )
 
+reporter = CLIReporter(
+    parameter_columns=["layer_1_size", "layer_2_size", "lr", "batch_size"],
+    metric_columns=["loss", "mean_accuracy", "training_iteration"])
+
 def tune_mnist_asha(num_samples=10):
     scheduler = ASHAScheduler(max_t=num_epochs, grace_period=1, reduction_factor=2)
 
@@ -185,11 +191,12 @@ def tune_mnist_asha(num_samples=10):
         ),
         run_config=air.RunConfig(
             name="tune_mnist_asha",
+            progress_reporter=reporter,
         ),
     )
     results = tuner.fit()
     best_result = results.get_best_result(metric="ptl/val_accuracy", mode="max")
-    print(best_result)
+    print(f"BEST RESULTS: {best_result}")
 
 
 
