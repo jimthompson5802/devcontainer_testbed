@@ -1,3 +1,7 @@
 .DS_Store
 .vscode
 .idea
+
+
+# tune events directories
+tune-ptl-example/
