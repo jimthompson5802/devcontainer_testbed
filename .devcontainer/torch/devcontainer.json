@@ -5,7 +5,8 @@
         "terminal.integrated.shell.linux": "/bin/bash"
     },
     "extensions": [
-        "ms-python.python",
-        "pylance"
-    ]
+		"ms-python.python",
+		"pylance",
+		"GitHub.copilot"
+	]
 }
