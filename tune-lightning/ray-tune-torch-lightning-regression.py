@@ -106,6 +106,10 @@ class RegressionDataModule(pl.LightningDataModule):
         self.batch_size = batch_size
 
     def prepare_data(self) -> None:
+        ###
+        # Need to confirm this is the place to do all the data pre-processing
+        # Also think about pre-processing in driver and store as Ray data object.
+        ###
         df = CustomDataset(pd.read_parquet(self.data_fp))
 
         # split dataset into train, validation
@@ -166,6 +170,9 @@ from ray.tune.integration.pytorch_lightning import TuneReportCallback, \
 #     on="validation_end")
 
 def train_regression_tune(config, num_epochs=10, num_gpus=0, data_fp=None):
+    """
+    Core training loop for tune run
+    """
     print(f">>>>{os.getpid()} entering train_regression_tune with config: {config}")
     model = RegressionModel(config, n_features=N_FEATURES)
 
@@ -220,6 +227,9 @@ train_fn_with_parameters = tune.with_parameters(train_regression_tune,
 resources_per_trial = {"cpu": 1, "gpu": gpus_per_trial}
 
 def tune_regression_asha(num_samples=10, num_epochs=10, gpus_per_trial=0, data_fp=None):
+    """
+    Setup for the hyperparameter tuning with ASHA
+    """
     config = {
         "layer_1_size": tune.choice([32, 64, 128]),
         "layer_2_size": tune.choice([64, 128, 256]),
@@ -228,6 +238,7 @@ def tune_regression_asha(num_samples=10, num_epochs=10, gpus_per_trial=0, data_f
     }
     print(f">>>>{os.getpid()} entering train_regression_asha with config: {config}")
 
+    # define the scheduler and reporter
     scheduler = ASHAScheduler(
         max_t=num_epochs,
         grace_period=1,
@@ -237,6 +248,7 @@ def tune_regression_asha(num_samples=10, num_epochs=10, gpus_per_trial=0, data_f
         parameter_columns=["layer_1_size", "layer_2_size", "lr", "batch_size"],
         metric_columns=["loss", "mean_accuracy", "training_iteration"])
 
+    # setup for train function with parameters fir tune
     train_fn_with_parameters = tune.with_parameters(
         train_regression_tune,
         num_epochs=num_epochs,
@@ -245,6 +257,7 @@ def tune_regression_asha(num_samples=10, num_epochs=10, gpus_per_trial=0, data_f
     )
     resources_per_trial = {"cpu": 1, "gpu": gpus_per_trial}
     
+    # Configure tune with all the needed components
     tuner = tune.Tuner(
         tune.with_resources(
             train_fn_with_parameters,
@@ -262,6 +275,8 @@ def tune_regression_asha(num_samples=10, num_epochs=10, gpus_per_trial=0, data_f
         ),
         param_space=config,
     )
+
+    # run the hyperparameter tuning processes
     results = tuner.fit()
 
     print(
