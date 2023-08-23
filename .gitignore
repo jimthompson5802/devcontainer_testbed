@@ -5,3 +5,7 @@
 
 # tune events directories
 tune-ptl-example/
+
+# data directory
+data/
+lightning_logs/
