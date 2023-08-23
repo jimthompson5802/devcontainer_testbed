@@ -11,8 +11,8 @@ from sklearn.datasets import make_regression
 import pandas as pd
 
 # constants
-N_SAMPLES = 1000
-N_FEATURES = 10
+N_SAMPLES = 50000
+N_FEATURES = 100
 
 # create synthetic regression dataset
 X, y = make_regression(n_samples=N_SAMPLES, n_features=N_FEATURES, noise=0.1, random_state=1)
@@ -130,10 +130,14 @@ model = RegressionModel(
 data_module = RegressionDataModule(data_fp="data/data.parquet", batch_size=32)
 data_module.prepare_data()
 
-trainer = pl.Trainer(max_epochs=10, enable_progress_bar=True)
+trainer = pl.Trainer(max_epochs=3, enable_progress_bar=True)
 trainer.fit(model, train_dataloaders=data_module.train_dataloader(), val_dataloaders=data_module.val_dataloader())
 
 
+
+###
+# setup for ray tune
+###
 def train_regression(config):
     print(f">>>>{os.getpid()} entering train_regression with config: {config}")
     model = RegressionModel(config, n_features=N_FEATURES)
@@ -181,7 +185,8 @@ def train_regression_tune(config, num_epochs=10, num_gpus=0, data_fp=None):
                     "loss": "ptl/val_loss",
                 },
                 on="validation_end")
-        ])
+        ]
+    )
     trainer.fit(model, train_dataloaders=data_module.train_dataloader(), val_dataloaders=data_module.val_dataloader())
 
 config = {
@@ -232,10 +237,12 @@ def tune_regression_asha(num_samples=10, num_epochs=10, gpus_per_trial=0, data_f
         parameter_columns=["layer_1_size", "layer_2_size", "lr", "batch_size"],
         metric_columns=["loss", "mean_accuracy", "training_iteration"])
 
-    train_fn_with_parameters = tune.with_parameters(train_regression_tune,
-                                                    num_epochs=num_epochs,
-                                                    num_gpus=gpus_per_trial,
-                                                    data_fp=data_fp)
+    train_fn_with_parameters = tune.with_parameters(
+        train_regression_tune,
+        num_epochs=num_epochs,
+        num_gpus=gpus_per_trial,
+        data_fp=data_fp
+    )
     resources_per_trial = {"cpu": 1, "gpu": gpus_per_trial}
     
     tuner = tune.Tuner(
@@ -257,8 +264,15 @@ def tune_regression_asha(num_samples=10, num_epochs=10, gpus_per_trial=0, data_f
     )
     results = tuner.fit()
 
-    print("Best hyperparameters found were: ", results.get_best_result().config)
+    print(
+        f"Best hyperparameters found were:\n"
+        f"  loss metric: {results.get_best_result().metrics['loss']}\n"
+        f"  config: {results.get_best_result().config}"
+    )
 
 if __name__ == "__main__":
-    tune_regression_asha(data_fp="/workspaces/devcontainer_testbed/data/data.parquet")
+    tune_regression_asha(
+        num_samples=15,
+        data_fp="/workspaces/devcontainer_testbed/data/data.parquet"
+        )
     print("Done!")
