@@ -1,6 +1,8 @@
 # Testbed for Ray Tune and PyTorch Lightning
 
-## Excerpt Sample Run
+## Excerpt Sample Run of `ray-tune-torch-lightning-regression.py`
+
+```text
 ```text
 2023-08-23 11:25:39,023 WARNING services.py:1832 -- WARNING: The object store is using /tmp instead of /dev/shm because /dev/shm has only 66670592 bytes available. This will harm performance! You may be able to free up space by deleting files in /dev/shm. If you are inside a Docker container, you can increase /dev/shm size by passing '--shm-size=3.18gb' to 'docker run' (or add it to the run_options list in a Ray cluster config). Make sure to set this to more than 30% of available RAM.
 2023-08-23 11:25:40,089 INFO worker.py:1621 -- Started a local Ray instance.
