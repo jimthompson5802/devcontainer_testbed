@@ -266,7 +266,7 @@ if __name__ == "__main__":
     # run the hyperparameter tuning
     tune_regression_asha(
         num_samples=15,
-        cpus_per_trial=2,
+        cpus_per_trial=8,
         data_fp="/workspaces/devcontainer_testbed/data/data.parquet"
     )
 

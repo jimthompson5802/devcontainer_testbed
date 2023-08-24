@@ -259,58 +259,166 @@ Done!
 ### cpu_per_trial=4
 
 ```text
-Trial status: 8 TERMINATED | 6 RUNNING | 1 PENDING
-Current time: 2023-08-24 03:20:58. Total running time: 30s
+Trial status: 9 TERMINATED | 2 RUNNING | 4 PENDING
+Current time: 2023-08-24 03:32:45. Total running time: 30s
 Logical resource usage: 12.0/12 CPUs, 0/0 GPUs
-Current best trial: 2c67d_00008 with loss=4.516640663146973 and params={'layer_1_size': 128, 'layer_2_size': 128, 'lr': 0.0013577274843424307, 'batch_size': 64}
+Current best trial: d1d63_00001 with loss=2.7526450157165527 and params={'layer_1_size': 32, 'layer_2_size': 64, 'lr': 0.0010483242524670089, 'batch_size': 64}
 ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ Trial name                          status         layer_1_size     layer_2_size            lr     batch_size     iter     total time (s)       loss │
 ├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ train_regression_tune_2c67d_00004   RUNNING                  64              128   0.00977846             128        5           24.7063     5.4254  │
-│ train_regression_tune_2c67d_00007   RUNNING                 128              256   0.00501308              64        3           15.4439     6.4488  │
-│ train_regression_tune_2c67d_00008   RUNNING                 128              128   0.00135773              64        3           14.4063     4.51664 │
-│ train_regression_tune_2c67d_00010   RUNNING                  64              256   0.000710557            128        3           14.1417     5.10094 │
-│ train_regression_tune_2c67d_00012   RUNNING                  32               64   0.00411967              32        3           13.4673     4.57741 │
-│ train_regression_tune_2c67d_00013   RUNNING                 128              256   0.000525587            128        1            5.04017    8.22284 │
-│ train_regression_tune_2c67d_00000   TERMINATED              128              128   0.000248698             32        1            6.42915    8.94751 │
-│ train_regression_tune_2c67d_00001   TERMINATED               64              256   0.00966153              32        2           11.2803     6.99245 │
-│ train_regression_tune_2c67d_00002   TERMINATED               64              128   0.0337406               64        1            6.18338   12.0615  │
-│ train_regression_tune_2c67d_00003   TERMINATED              128              256   0.000116656             32        1            6.70216   12.3318  │
-│ train_regression_tune_2c67d_00005   TERMINATED               64              256   0.0835432              128        1            6.57966    8.90171 │
-│ train_regression_tune_2c67d_00006   TERMINATED               32              256   0.00061776              32        1            4.65402   10.6033  │
-│ train_regression_tune_2c67d_00009   TERMINATED               64              256   0.0570869              128        1            4.94391   13.0592  │
-│ train_regression_tune_2c67d_00011   TERMINATED               64              256   0.0123053              128        1            4.87301    9.79954 │
-│ train_regression_tune_2c67d_00014   PENDING                  32               64   0.000725013            128                                        │
+│ train_regression_tune_d1d63_00001   RUNNING                  32               64   0.00104832              64        7           23.7439     2.75265 │
+│ train_regression_tune_d1d63_00010   RUNNING                 128              256   0.0019153               64                                        │
+│ train_regression_tune_d1d63_00000   TERMINATED              128              256   0.000501353             32        2            8.42832    6.7361  │
+│ train_regression_tune_d1d63_00002   TERMINATED              128               64   0.000384652             64        1            4.47712    9.03014 │
+│ train_regression_tune_d1d63_00003   TERMINATED               32              256   0.00323912              32        4           13.29       4.35152 │
+│ train_regression_tune_d1d63_00004   TERMINATED              128              256   0.000367472             64        2            7.0978     6.92272 │
+│ train_regression_tune_d1d63_00005   TERMINATED               32              256   0.000237237             32        1            3.37766   13.1278  │
+│ train_regression_tune_d1d63_00006   TERMINATED               32               64   0.000219979             64        1            3.30238   40.3286  │
+│ train_regression_tune_d1d63_00007   TERMINATED              128              128   0.000126339             64        1            3.48111   17.3461  │
+│ train_regression_tune_d1d63_00008   TERMINATED              128              256   0.0660558               32        1            3.82173   13.2174  │
+│ train_regression_tune_d1d63_00009   TERMINATED              128              128   0.00906434             128        1            3.44989    9.25914 │
+│ train_regression_tune_d1d63_00011   PENDING                  64               64   0.00485799              64                                        │
+│ train_regression_tune_d1d63_00012   PENDING                  64              256   0.000553559             64                                        │
+│ train_regression_tune_d1d63_00013   PENDING                 128              256   0.0109471              128                                        │
+│ train_regression_tune_d1d63_00014   PENDING                 128              256   0.0406331               32                                        │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+
+Trial status: 15 TERMINATED
+Current time: 2023-08-24 03:33:03. Total running time: 48s
+Logical resource usage: 4.0/12 CPUs, 0/0 GPUs
+Current best trial: d1d63_00001 with loss=2.376622438430786 and params={'layer_1_size': 32, 'layer_2_size': 64, 'lr': 0.0010483242524670089, 'batch_size': 64}
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                          status         layer_1_size     layer_2_size            lr     batch_size     iter     total time (s)       loss │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ train_regression_tune_d1d63_00000   TERMINATED              128              256   0.000501353             32        2            8.42832    6.7361  │
+│ train_regression_tune_d1d63_00001   TERMINATED               32               64   0.00104832              64       10           33.238      2.37662 │
+│ train_regression_tune_d1d63_00002   TERMINATED              128               64   0.000384652             64        1            4.47712    9.03014 │
+│ train_regression_tune_d1d63_00003   TERMINATED               32              256   0.00323912              32        4           13.29       4.35152 │
+│ train_regression_tune_d1d63_00004   TERMINATED              128              256   0.000367472             64        2            7.0978     6.92272 │
+│ train_regression_tune_d1d63_00005   TERMINATED               32              256   0.000237237             32        1            3.37766   13.1278  │
+│ train_regression_tune_d1d63_00006   TERMINATED               32               64   0.000219979             64        1            3.30238   40.3286  │
+│ train_regression_tune_d1d63_00007   TERMINATED              128              128   0.000126339             64        1            3.48111   17.3461  │
+│ train_regression_tune_d1d63_00008   TERMINATED              128              256   0.0660558               32        1            3.82173   13.2174  │
+│ train_regression_tune_d1d63_00009   TERMINATED              128              128   0.00906434             128        1            3.44989    9.25914 │
+│ train_regression_tune_d1d63_00010   TERMINATED              128              256   0.0019153               64        4           14.1992     4.74536 │
+│ train_regression_tune_d1d63_00011   TERMINATED               64               64   0.00485799              64        4           12.9627     4.87972 │
+│ train_regression_tune_d1d63_00012   TERMINATED               64              256   0.000553559             64        1            3.38353    9.36037 │
+│ train_regression_tune_d1d63_00013   TERMINATED              128              256   0.0109471              128        2            7.1392     7.34371 │
+│ train_regression_tune_d1d63_00014   TERMINATED              128              256   0.0406331               32        1            3.74642   10.7843  │
+╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+resources for each trial: {'cpu': 4, 'gpu': 0}
+Best hyperparameters found were:
+  loss metric: 2.376622438430786
+  config: {'layer_1_size': 32, 'layer_2_size': 64, 'lr': 0.0010483242524670089, 'batch_size': 64}
+exiting train_regression_asha after 51.91313695907593 seconds
+Done!
+```
+
+### cpu_per_trial=8
+
+```text
+Trial status: 1 RUNNING | 14 PENDING
+Current time: 2023-08-24 03:37:10. Total running time: 30s
+Logical resource usage: 8.0/12 CPUs, 0/0 GPUs
+Current best trial: 6fe47_00000 with loss=5.84720516204834 and params={'layer_1_size': 128, 'layer_2_size': 128, 'lr': 0.015073412816911403, 'batch_size': 128}
+╭───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                          status       layer_1_size     layer_2_size            lr     batch_size     iter     total time (s)      loss │
+├───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ train_regression_tune_6fe47_00000   RUNNING               128              128   0.0150734              128        7            24.5415   5.84721 │
+│ train_regression_tune_6fe47_00001   PENDING                64              128   0.00114655              32                                       │
+│ train_regression_tune_6fe47_00002   PENDING               128              128   0.0108648              128                                       │
+│ train_regression_tune_6fe47_00003   PENDING                64               64   0.0006025               64                                       │
+│ train_regression_tune_6fe47_00004   PENDING               128              256   0.00059294             128                                       │
+│ train_regression_tune_6fe47_00005   PENDING                32               64   0.00476812              64                                       │
+│ train_regression_tune_6fe47_00006   PENDING                64              128   0.094065                32                                       │
+│ train_regression_tune_6fe47_00007   PENDING                32              128   0.0483743               32                                       │
+│ train_regression_tune_6fe47_00008   PENDING                64              256   0.00744418             128                                       │
+│ train_regression_tune_6fe47_00009   PENDING               128              128   0.00887355              64                                       │
+│ train_regression_tune_6fe47_00010   PENDING                32               64   0.0623045              128                                       │
+│ train_regression_tune_6fe47_00011   PENDING                64               64   0.000399692            128                                       │
+│ train_regression_tune_6fe47_00012   PENDING               128              256   0.000298023             32                                       │
+│ train_regression_tune_6fe47_00013   PENDING               128              256   0.000619291             32                                       │
+│ train_regression_tune_6fe47_00014   PENDING               128              128   0.000518084            128                                       │
+╰───────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+Trial status: 1 TERMINATED | 1 RUNNING | 13 PENDING
+Current time: 2023-08-24 03:37:40. Total running time: 1min 0s
+Logical resource usage: 8.0/12 CPUs, 0/0 GPUs
+Current best trial: 6fe47_00001 with loss=2.998546838760376 and params={'layer_1_size': 64, 'layer_2_size': 128, 'lr': 0.0011465485386317584, 'batch_size': 32}
+╭─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                          status         layer_1_size     layer_2_size            lr     batch_size     iter     total time (s)      loss │
+├─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ train_regression_tune_6fe47_00001   RUNNING                  64              128   0.00114655              32        7            20.2562   2.99855 │
+│ train_regression_tune_6fe47_00000   TERMINATED              128              128   0.0150734              128       10            34.2259   5.07155 │
+│ train_regression_tune_6fe47_00002   PENDING                 128              128   0.0108648              128                                       │
+│ train_regression_tune_6fe47_00003   PENDING                  64               64   0.0006025               64                                       │
+│ train_regression_tune_6fe47_00004   PENDING                 128              256   0.00059294             128                                       │
+│ train_regression_tune_6fe47_00005   PENDING                  32               64   0.00476812              64                                       │
+│ train_regression_tune_6fe47_00006   PENDING                  64              128   0.094065                32                                       │
+│ train_regression_tune_6fe47_00007   PENDING                  32              128   0.0483743               32                                       │
+│ train_regression_tune_6fe47_00008   PENDING                  64              256   0.00744418             128                                       │
+│ train_regression_tune_6fe47_00009   PENDING                 128              128   0.00887355              64                                       │
+│ train_regression_tune_6fe47_00010   PENDING                  32               64   0.0623045              128                                       │
+│ train_regression_tune_6fe47_00011   PENDING                  64               64   0.000399692            128                                       │
+│ train_regression_tune_6fe47_00012   PENDING                 128              256   0.000298023             32                                       │
+│ train_regression_tune_6fe47_00013   PENDING                 128              256   0.000619291             32                                       │
+│ train_regression_tune_6fe47_00014   PENDING                 128              128   0.000518084            128                                       │
+╰─────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
+
+Trial status: 8 TERMINATED | 1 RUNNING | 6 PENDING
+Current time: 2023-08-24 03:39:10. Total running time: 2min 30s
+Logical resource usage: 8.0/12 CPUs, 0/0 GPUs
+Current best trial: 6fe47_00001 with loss=2.6126291751861572 and params={'layer_1_size': 64, 'layer_2_size': 128, 'lr': 0.0011465485386317584, 'batch_size': 32}
+╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Trial name                          status         layer_1_size     layer_2_size            lr     batch_size     iter     total time (s)       loss │
+├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
+│ train_regression_tune_6fe47_00008   RUNNING                  64              256   0.00744418             128                                        │
+│ train_regression_tune_6fe47_00000   TERMINATED              128              128   0.0150734              128       10           34.2259     5.07155 │
+│ train_regression_tune_6fe47_00001   TERMINATED               64              128   0.00114655              32       10           29.1051     2.61263 │
+│ train_regression_tune_6fe47_00002   TERMINATED              128              128   0.0108648              128        4           12.3629     5.88853 │
+│ train_regression_tune_6fe47_00003   TERMINATED               64               64   0.0006025               64        1            2.90962    9.59071 │
+│ train_regression_tune_6fe47_00004   TERMINATED              128              256   0.00059294             128       10           30.817      3.40816 │
+│ train_regression_tune_6fe47_00005   TERMINATED               32               64   0.00476812              64       10           28.6145     3.15123 │
+│ train_regression_tune_6fe47_00006   TERMINATED               64              128   0.094065                32        1            3.09662   11.1741  │
+│ train_regression_tune_6fe47_00007   TERMINATED               32              128   0.0483743               32        1            2.93861   10.7039  │
+│ train_regression_tune_6fe47_00009   PENDING                 128              128   0.00887355              64                                        │
+│ train_regression_tune_6fe47_00010   PENDING                  32               64   0.0623045              128                                        │
+│ train_regression_tune_6fe47_00011   PENDING                  64               64   0.000399692            128                                        │
+│ train_regression_tune_6fe47_00012   PENDING                 128              256   0.000298023             32                                        │
+│ train_regression_tune_6fe47_00013   PENDING                 128              256   0.000619291             32                                        │
+│ train_regression_tune_6fe47_00014   PENDING                 128              128   0.000518084            128                                        │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
 Trial status: 15 TERMINATED
-Current time: 2023-08-24 03:21:22. Total running time: 54s
-Logical resource usage: 2.0/12 CPUs, 0/0 GPUs
-Current best trial: 2c67d_00010 with loss=2.812286615371704 and params={'layer_1_size': 64, 'layer_2_size': 256, 'lr': 0.000710557104067881, 'batch_size': 128}
+Current time: 2023-08-24 03:40:00. Total running time: 3min 20s
+Logical resource usage: 8.0/12 CPUs, 0/0 GPUs
+Current best trial: 6fe47_00001 with loss=2.6126291751861572 and params={'layer_1_size': 64, 'layer_2_size': 128, 'lr': 0.0011465485386317584, 'batch_size': 32}
 ╭──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
 │ Trial name                          status         layer_1_size     layer_2_size            lr     batch_size     iter     total time (s)       loss │
 ├──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ train_regression_tune_2c67d_00000   TERMINATED              128              128   0.000248698             32        1            6.42915    8.94751 │
-│ train_regression_tune_2c67d_00001   TERMINATED               64              256   0.00966153              32        2           11.2803     6.99245 │
-│ train_regression_tune_2c67d_00002   TERMINATED               64              128   0.0337406               64        1            6.18338   12.0615  │
-│ train_regression_tune_2c67d_00003   TERMINATED              128              256   0.000116656             32        1            6.70216   12.3318  │
-│ train_regression_tune_2c67d_00004   TERMINATED               64              128   0.00977846             128       10           42.5862     4.70379 │
-│ train_regression_tune_2c67d_00005   TERMINATED               64              256   0.0835432              128        1            6.57966    8.90171 │
-│ train_regression_tune_2c67d_00006   TERMINATED               32              256   0.00061776              32        1            4.65402   10.6033  │
-│ train_regression_tune_2c67d_00007   TERMINATED              128              256   0.00501308              64        4           20.5975     5.89365 │
-│ train_regression_tune_2c67d_00008   TERMINATED              128              128   0.00135773              64       10           40.5308     3.35407 │
-│ train_regression_tune_2c67d_00009   TERMINATED               64              256   0.0570869              128        1            4.94391   13.0592  │
-│ train_regression_tune_2c67d_00010   TERMINATED               64              256   0.000710557            128       10           38.46       2.81229 │
-│ train_regression_tune_2c67d_00011   TERMINATED               64              256   0.0123053              128        1            4.87301    9.79954 │
-│ train_regression_tune_2c67d_00012   TERMINATED               32               64   0.00411967              32       10           36.9054     3.45425 │
-│ train_regression_tune_2c67d_00013   TERMINATED              128              256   0.000525587            128        2           10.0112     6.596   │
-│ train_regression_tune_2c67d_00014   TERMINATED               32               64   0.000725013            128        1            3.7865    11.2807  │
+│ train_regression_tune_6fe47_00000   TERMINATED              128              128   0.0150734              128       10           34.2259     5.07155 │
+│ train_regression_tune_6fe47_00001   TERMINATED               64              128   0.00114655              32       10           29.1051     2.61263 │
+│ train_regression_tune_6fe47_00002   TERMINATED              128              128   0.0108648              128        4           12.3629     5.88853 │
+│ train_regression_tune_6fe47_00003   TERMINATED               64               64   0.0006025               64        1            2.90962    9.59071 │
+│ train_regression_tune_6fe47_00004   TERMINATED              128              256   0.00059294             128       10           30.817      3.40816 │
+│ train_regression_tune_6fe47_00005   TERMINATED               32               64   0.00476812              64       10           28.6145     3.15123 │
+│ train_regression_tune_6fe47_00006   TERMINATED               64              128   0.094065                32        1            3.09662   11.1741  │
+│ train_regression_tune_6fe47_00007   TERMINATED               32              128   0.0483743               32        1            2.93861   10.7039  │
+│ train_regression_tune_6fe47_00008   TERMINATED               64              256   0.00744418             128        1            3.01456   10.0292  │
+│ train_regression_tune_6fe47_00009   TERMINATED              128              128   0.00887355              64        2            6.0536     6.29322 │
+│ train_regression_tune_6fe47_00010   TERMINATED               32               64   0.0623045              128        1            2.82052    9.8758  │
+│ train_regression_tune_6fe47_00011   TERMINATED               64               64   0.000399692            128        1            2.89641   11.1164  │
+│ train_regression_tune_6fe47_00012   TERMINATED              128              256   0.000298023             32        2            6.13649    7.55454 │
+│ train_regression_tune_6fe47_00013   TERMINATED              128              256   0.000619291             32        2            6.18071    6.39616 │
+│ train_regression_tune_6fe47_00014   TERMINATED              128              128   0.000518084            128        8           23.6992     3.67373 │
 ╰──────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────────╯
 
-resources for each trial: {'cpu': 2, 'gpu': 0}
+resources for each trial: {'cpu': 8, 'gpu': 0}
 Best hyperparameters found were:
-  loss metric: 2.812286615371704
-  config: {'layer_1_size': 64, 'layer_2_size': 256, 'lr': 0.000710557104067881, 'batch_size': 128}
-exiting train_regression_asha after 58.7718563079834 seconds
+  loss metric: 2.6126291751861572
+  config: {'layer_1_size': 64, 'layer_2_size': 128, 'lr': 0.0011465485386317584, 'batch_size': 32}
+exiting train_regression_asha after 204.483549118042 seconds
 Done!
 ```
