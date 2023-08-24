@@ -3,7 +3,8 @@
 .idea
 
 
-# tune events directories
+# tune results
+ray_results/
 tune-ptl-example/
 
 # data directory
