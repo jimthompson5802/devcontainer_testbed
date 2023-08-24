@@ -22,7 +22,7 @@ from ray.tune.integration.pytorch_lightning import TuneReportCallback, \
 
 
 # constants
-N_SAMPLES = 50000
+N_SAMPLES = 500000
 N_FEATURES = 100
 
 # create synthetic regression dataset
@@ -32,6 +32,9 @@ X, y = make_regression(n_samples=N_SAMPLES, n_features=N_FEATURES, noise=0.1, ra
 df = pd.DataFrame(X, columns=[f"f_{i}" for i in range(N_FEATURES)])
 df["y"] = y
 
+
+# print size of dataframe
+print(f"size of dataframe: {df.memory_usage(deep=True).sum() / (1024*1024)} MB")
 print(df.head())
 
 # save dataframe to paraquet
@@ -266,7 +269,7 @@ if __name__ == "__main__":
     # run the hyperparameter tuning
     tune_regression_asha(
         num_samples=15,
-        cpus_per_trial=8,
+        cpus_per_trial=2,
         data_fp="/workspaces/devcontainer_testbed/data/data.parquet"
     )
 
