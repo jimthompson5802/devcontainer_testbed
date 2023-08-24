@@ -7,8 +7,19 @@ from torch.utils.data import Dataset, DataLoader, random_split
 from torch.nn import functional as F
 import os
 import sys
+import shutil
+import time
 from sklearn.datasets import make_regression
 import pandas as pd
+
+from pytorch_lightning.loggers import TensorBoardLogger
+from ray import air, tune
+from ray.air import session
+from ray.tune import CLIReporter
+from ray.tune.schedulers import ASHAScheduler, PopulationBasedTraining
+from ray.tune.integration.pytorch_lightning import TuneReportCallback, \
+    TuneReportCheckpointCallback
+
 
 # constants
 N_SAMPLES = 50000
@@ -24,7 +35,7 @@ df["y"] = y
 print(df.head())
 
 # save dataframe to paraquet
-df.to_parquet("data/data.parquet")
+df.to_parquet("../data/data.parquet")
 
 
 # class for custom pytorch dataset
@@ -105,7 +116,7 @@ class RegressionDataModule(pl.LightningDataModule):
         self.data_fp = data_fp
         self.batch_size = batch_size
 
-    def prepare_data(self) -> None:
+    def setup(self, stage: str) -> None:
         ###
         # Need to confirm this is the place to do all the data pre-processing
         # Also think about pre-processing in driver and store as Ray data object.
@@ -126,58 +137,36 @@ class RegressionDataModule(pl.LightningDataModule):
 ###
 # test trainng the LightningModule
 ###
-model = RegressionModel(
-    config={"layer_1_size": 32, "layer_2_size": 64, "lr": 1e-4, "batch_size": 32}, 
-    n_features=N_FEATURES
-)
+# model = RegressionModel(
+#     config={"layer_1_size": 32, "layer_2_size": 64, "lr": 1e-4, "batch_size": 32}, 
+#     n_features=N_FEATURES
+# )
 
-data_module = RegressionDataModule(data_fp="data/data.parquet", batch_size=32)
-data_module.prepare_data()
+# data_module = RegressionDataModule(data_fp="../data/data.parquet", batch_size=32)
+# data_module.prepare_data()
 
-trainer = pl.Trainer(max_epochs=3, enable_progress_bar=True)
-trainer.fit(model, train_dataloaders=data_module.train_dataloader(), val_dataloaders=data_module.val_dataloader())
+# trainer = pl.Trainer(max_epochs=3, enable_progress_bar=True)
+# trainer.fit(model, train_dataloaders=data_module.train_dataloader(), val_dataloaders=data_module.val_dataloader())
 
 
 
 ###
 # setup for ray tune
 ###
-def train_regression(config):
-    print(f">>>>{os.getpid()} entering train_regression with config: {config}")
-    model = RegressionModel(config, n_features=N_FEATURES)
-
-    data_module = RegressionDataModule(data_fp="data/data.parquet", batch_size=32)
-    data_module.prepare_data()
-
-    trainer = pl.Trainer(max_epochs=10, enable_progress_bar=False)
-
-    trainer.fit(model, train_dataloaders=data_module.train_dataloader(), val_dataloaders=data_module.val_dataloader())
-
-from pytorch_lightning.loggers import TensorBoardLogger
-from ray import air, tune
-from ray.air import session
-from ray.tune import CLIReporter
-from ray.tune.schedulers import ASHAScheduler, PopulationBasedTraining
-from ray.tune.integration.pytorch_lightning import TuneReportCallback, \
-    TuneReportCheckpointCallback
-
-
-# TuneReportCallback(
-#     {
-#         "loss": "ptl/val_loss",
-#         "mean_accuracy": "ptl/val_accuracy"
-#     },
-#     on="validation_end")
 
 def train_regression_tune(config, num_epochs=10, num_gpus=0, data_fp=None):
     """
     Core training loop for tune run
     """
     print(f">>>>{os.getpid()} entering train_regression_tune with config: {config}")
+    print(f">>>>{os.getpid()} has access to {os.cpu_count()} cpus")
+
+    start_time = time.time()
+
     model = RegressionModel(config, n_features=N_FEATURES)
 
     data_module = RegressionDataModule(data_fp=data_fp, batch_size=32)
-    data_module.prepare_data()
+    # data_module.prepare_data()
 
     trainer = pl.Trainer(
         max_epochs=num_epochs,
@@ -194,42 +183,23 @@ def train_regression_tune(config, num_epochs=10, num_gpus=0, data_fp=None):
                 on="validation_end")
         ]
     )
-    trainer.fit(model, train_dataloaders=data_module.train_dataloader(), val_dataloaders=data_module.val_dataloader())
 
-config = {
-    "layer_1_size": tune.choice([32, 64, 128]),
-    "layer_2_size": tune.choice([64, 128, 256]),
-    "lr": tune.loguniform(1e-4, 1e-1),
-    "batch_size": tune.choice([32, 64, 128]),
-}
-
-
-num_epochs = 10
-
-scheduler = ASHAScheduler(
-    max_t=num_epochs,
-    grace_period=1,
-    reduction_factor=2)
+    print(f">>>>{os.getpid()} starting trainer.fit")
+    trainer.fit(
+        model, 
+        data_module,
+        # train_dataloaders=data_module.train_dataloader(), 
+        # val_dataloaders=data_module.val_dataloader()
+    )
+    print(f">>>>{os.getpid()} exiting train_regression_tune after {time.time() - start_time} seconds")
 
 
-reporter = CLIReporter(
-    parameter_columns=["layer_1_size", "layer_2_size", "lr", "batch_size"],
-    metric_columns=["loss", "mean_accuracy", "training_iteration"])
-
-gpus_per_trial = 0
-data_fp = "data/data.parquet"
-
-train_fn_with_parameters = tune.with_parameters(train_regression_tune,
-                                                num_epochs=num_epochs,
-                                                num_gpus=gpus_per_trial,
-                                                data_fp=data_fp)
-
-resources_per_trial = {"cpu": 1, "gpu": gpus_per_trial}
-
-def tune_regression_asha(num_samples=10, num_epochs=10, gpus_per_trial=0, data_fp=None):
+def tune_regression_asha(num_samples=10, num_epochs=10, cpus_per_trial=1, gpus_per_trial=0, data_fp=None):
     """
     Setup for the hyperparameter tuning with ASHA
     """
+    start_time = time.time()
+
     config = {
         "layer_1_size": tune.choice([32, 64, 128]),
         "layer_2_size": tune.choice([64, 128, 256]),
@@ -255,7 +225,7 @@ def tune_regression_asha(num_samples=10, num_epochs=10, gpus_per_trial=0, data_f
         num_gpus=gpus_per_trial,
         data_fp=data_fp
     )
-    resources_per_trial = {"cpu": 1, "gpu": gpus_per_trial}
+    resources_per_trial = {"cpu": cpus_per_trial, "gpu": gpus_per_trial}
     
     # Configure tune with all the needed components
     tuner = tune.Tuner(
@@ -272,6 +242,8 @@ def tune_regression_asha(num_samples=10, num_epochs=10, gpus_per_trial=0, data_f
         run_config=air.RunConfig(
             name="tune_regression_asha",
             progress_reporter=reporter,
+            log_to_file=True,
+            local_dir="ray_results",
         ),
         param_space=config,
     )
@@ -279,15 +251,24 @@ def tune_regression_asha(num_samples=10, num_epochs=10, gpus_per_trial=0, data_f
     # run the hyperparameter tuning processes
     results = tuner.fit()
 
+    print(f"resources for each trial: {resources_per_trial}")
     print(
         f"Best hyperparameters found were:\n"
         f"  loss metric: {results.get_best_result().metrics['loss']}\n"
         f"  config: {results.get_best_result().config}"
     )
+    print(f"exiting train_regression_asha after {time.time() - start_time} seconds")
 
 if __name__ == "__main__":
+    # clear out ray results directory
+    shutil.rmtree("ray_results", ignore_errors=True, onerror=None)
+
+    # run the hyperparameter tuning
     tune_regression_asha(
         num_samples=15,
+        cpus_per_trial=2,
         data_fp="/workspaces/devcontainer_testbed/data/data.parquet"
-        )
+    )
+
+    # all done
     print("Done!")
