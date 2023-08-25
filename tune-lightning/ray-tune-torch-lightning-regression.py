@@ -13,8 +13,8 @@ from sklearn.datasets import make_regression
 import pandas as pd
 
 from pytorch_lightning.loggers import TensorBoardLogger
-from ray import air, tune
-from ray.air import session
+from ray import tune, air
+# from ray.air import session
 from ray.tune import CLIReporter
 from ray.tune.schedulers import ASHAScheduler, PopulationBasedTraining
 from ray.tune.integration.pytorch_lightning import TuneReportCallback, \
@@ -22,7 +22,7 @@ from ray.tune.integration.pytorch_lightning import TuneReportCallback, \
 
 
 # constants
-N_SAMPLES = 500000
+N_SAMPLES = 20_000
 N_FEATURES = 100
 
 # create synthetic regression dataset
@@ -146,30 +146,31 @@ class RegressionDataModule(pl.LightningDataModule):
 # )
 
 # data_module = RegressionDataModule(data_fp="../data/data.parquet", batch_size=32)
-# data_module.prepare_data()
 
 # trainer = pl.Trainer(max_epochs=3, enable_progress_bar=True)
-# trainer.fit(model, train_dataloaders=data_module.train_dataloader(), val_dataloaders=data_module.val_dataloader())
-
+# trainer.fit(model, data_module)
+# sys.exit(0)
 
 
 ###
 # setup for ray tune
 ###
 
-def train_regression_tune(config, num_epochs=10, num_gpus=0, data_fp=None):
+def train_regression_tune(config, num_epochs=10, num_cpus=1, num_gpus=0, data_fp=None):
     """
     Core training loop for tune run
     """
     print(f">>>>{os.getpid()} entering train_regression_tune with config: {config}")
     print(f">>>>{os.getpid()} has access to {os.cpu_count()} cpus")
+    print(f">>>>{os.getpid()} entering torch num_threads {torch.get_num_threads()}")
 
     start_time = time.time()
+    torch.set_num_threads(num_cpus)
+    print(f">>>>{os.getpid()} after setting torch num_threads {torch.get_num_threads()}")
 
     model = RegressionModel(config, n_features=N_FEATURES)
 
     data_module = RegressionDataModule(data_fp=data_fp, batch_size=32)
-    # data_module.prepare_data()
 
     trainer = pl.Trainer(
         max_epochs=num_epochs,
@@ -191,10 +192,10 @@ def train_regression_tune(config, num_epochs=10, num_gpus=0, data_fp=None):
     trainer.fit(
         model, 
         data_module,
-        # train_dataloaders=data_module.train_dataloader(), 
-        # val_dataloaders=data_module.val_dataloader()
     )
-    print(f">>>>{os.getpid()} exiting train_regression_tune after {time.time() - start_time} seconds")
+    # following does not appear in stdout, not sure why
+    print(f">>>>{os.getpid()} exiting train_regression_tune after {time.time() - start_time} seconds\n")
+    # sys.stdout.flush()  # does not work
 
 
 def tune_regression_asha(num_samples=10, num_epochs=10, cpus_per_trial=1, gpus_per_trial=0, data_fp=None):
@@ -225,6 +226,7 @@ def tune_regression_asha(num_samples=10, num_epochs=10, cpus_per_trial=1, gpus_p
     train_fn_with_parameters = tune.with_parameters(
         train_regression_tune,
         num_epochs=num_epochs,
+        num_cpus=cpus_per_trial,
         num_gpus=gpus_per_trial,
         data_fp=data_fp
     )
@@ -268,7 +270,7 @@ if __name__ == "__main__":
 
     # run the hyperparameter tuning
     tune_regression_asha(
-        num_samples=15,
+        num_samples=5,
         cpus_per_trial=2,
         data_fp="/workspaces/devcontainer_testbed/data/data.parquet"
     )
