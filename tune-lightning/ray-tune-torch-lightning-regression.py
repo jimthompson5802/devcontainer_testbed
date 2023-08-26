@@ -63,7 +63,6 @@ class RegressionModel(pl.LightningModule):
         self.layer_1_size = config["layer_1_size"]
         self.layer_2_size = config["layer_2_size"]
         self.lr = config["lr"]
-        self.batch_size = config["batch_size"]
 
         # mnist images are (1, 28, 28) (channels, width, height)
         self.layer_1 = torch.nn.Linear(n_features, self.layer_1_size)
@@ -89,6 +88,7 @@ class RegressionModel(pl.LightningModule):
 
 
     def training_step(self, train_batch, batch_idx) -> torch.Tensor:
+        # print(f">>>>{os.getpid()} entering training_step, epoch {self.current_epoch}, batch_idx: {batch_idx}, batch_size: {train_batch[0].shape}")
         x, y = train_batch
         logits = self.forward(x)
         loss = self.rmse_loss(logits, y)
@@ -97,6 +97,7 @@ class RegressionModel(pl.LightningModule):
         return loss
 
     def validation_step(self, val_batch, batch_idx) -> torch.Tensor:
+        # print(f">>>>{os.getpid()} entering validation_step, batch_idx: {batch_idx}, batch_size: {val_batch[0].shape}")
         x, y = val_batch
         logits = self.forward(x)
         loss = self.rmse_loss(logits, y)
@@ -115,10 +116,11 @@ class RegressionModel(pl.LightningModule):
 
 # Define the LightningDataModule
 class RegressionDataModule(pl.LightningDataModule):
-    def __init__(self, data_fp: str=None, batch_size: int=64) -> None:
+    def __init__(self, data_fp: str=None, batch_size: int=64, num_workers: int=1) -> None:
         super().__init__()
         self.data_fp = data_fp
         self.batch_size = batch_size
+        self.num_workers = num_workers
 
     def setup(self, stage: str) -> None:
         ###
@@ -132,23 +134,31 @@ class RegressionDataModule(pl.LightningDataModule):
             df, [int(len(df)*0.8), int(len(df)*0.2)])
         
     def train_dataloader(self):
-        return DataLoader(self.train_data, batch_size=int(self.batch_size))
+        return DataLoader(
+            self.train_data, 
+            batch_size=int(self.batch_size), 
+            num_workers=self.num_workers,
+        )
 
     def val_dataloader(self):
-        return DataLoader(self.val_data, batch_size=int(self.batch_size))
+        return DataLoader(
+            self.val_data, 
+            batch_size=int(self.batch_size), 
+            num_workers=self.num_workers,
+        )
 
 
 ###
 # test trainng the LightningModule
 ###
 # model = RegressionModel(
-#     config={"layer_1_size": 32, "layer_2_size": 64, "lr": 1e-4, "batch_size": 32}, 
+#     config={"layer_1_size": 32, "layer_2_size": 64, "lr": 1e-4, }, 
 #     n_features=N_FEATURES
 # )
 
-# data_module = RegressionDataModule(data_fp="../data/data.parquet", batch_size=32)
+# data_module = RegressionDataModule(data_fp="../data/data.parquet", batch_size=128)
 
-# trainer = pl.Trainer(max_epochs=3, enable_progress_bar=True)
+# trainer = pl.Trainer(max_epochs=3, enable_progress_bar=False)
 # trainer.fit(model, data_module)
 # sys.exit(0)
 
@@ -174,7 +184,11 @@ def train_regression_tune(config, num_epochs=10, num_cpus=1, num_gpus=0, data_fp
 
     model = RegressionModel(config, n_features=N_FEATURES)
 
-    data_module = RegressionDataModule(data_fp=data_fp, batch_size=32)
+    data_module = RegressionDataModule(
+        data_fp=data_fp, 
+        batch_size=config["batch_size"],
+        num_workers=num_cpus,
+    )
 
     # define EarlyStopping callback
     early_stop_callback = pl.callbacks.EarlyStopping(
@@ -233,6 +247,7 @@ def tune_regression_asha(num_samples=10, num_epochs=10, cpus_per_trial=1, gpus_p
         reduction_factor=2)
 
     reporter = CLIReporter(
+        max_report_frequency=15,
         parameter_columns=["layer_1_size", "layer_2_size", "lr", "batch_size"],
         metric_columns=["loss", "mean_accuracy", "training_iteration"])
 
@@ -285,7 +300,7 @@ if __name__ == "__main__":
 
     # run the hyperparameter tuning
     tune_regression_asha(
-        num_epochs=30,
+        num_epochs=10,
         num_samples=15,
         cpus_per_trial=2,
         data_fp="/workspaces/devcontainer_testbed/data/data.parquet"
