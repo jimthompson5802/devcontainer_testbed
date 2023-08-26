@@ -13,6 +13,7 @@ from sklearn.datasets import make_regression
 import pandas as pd
 
 from pytorch_lightning.loggers import TensorBoardLogger
+import ray
 from ray import tune, air
 # from ray.air import session
 from ray.tune import CLIReporter
@@ -22,7 +23,7 @@ from ray.tune.integration.pytorch_lightning import TuneReportCallback, \
 
 
 # constants
-N_SAMPLES = 20_000
+N_SAMPLES = 50_000
 N_FEATURES = 100
 
 # create synthetic regression dataset
@@ -163,6 +164,9 @@ def train_regression_tune(config, num_epochs=10, num_cpus=1, num_gpus=0, data_fp
     print(f">>>>{os.getpid()} entering train_regression_tune with config: {config}")
     print(f">>>>{os.getpid()} has access to {os.cpu_count()} cpus")
     print(f">>>>{os.getpid()} entering torch num_threads {torch.get_num_threads()}")
+    trial_id = ray.tune.get_trial_id()
+    worker_id = ray.worker.global_worker.worker_id
+    print(f">>>>{os.getpid()} trial_id: {trial_id}, worker_id: {worker_id.hex()}")
 
     start_time = time.time()
     torch.set_num_threads(num_cpus)
@@ -172,6 +176,15 @@ def train_regression_tune(config, num_epochs=10, num_cpus=1, num_gpus=0, data_fp
 
     data_module = RegressionDataModule(data_fp=data_fp, batch_size=32)
 
+    # define EarlyStopping callback
+    early_stop_callback = pl.callbacks.EarlyStopping(
+        monitor="ptl/val_loss",
+        min_delta=0.00,
+        patience=5,
+        verbose=False,
+        mode="min"
+    )
+
     trainer = pl.Trainer(
         max_epochs=num_epochs,
         # If fractional GPUs passed in, convert to int.
@@ -180,6 +193,7 @@ def train_regression_tune(config, num_epochs=10, num_cpus=1, num_gpus=0, data_fp
             save_dir=os.getcwd(), name="", version="."),
         enable_progress_bar=False,
         callbacks=[
+            early_stop_callback,
             TuneReportCallback(
                 {
                     "loss": "ptl/val_loss",
@@ -267,10 +281,12 @@ def tune_regression_asha(num_samples=10, num_epochs=10, cpus_per_trial=1, gpus_p
 if __name__ == "__main__":
     # clear out ray results directory
     shutil.rmtree("ray_results", ignore_errors=True, onerror=None)
+    shutil.rmtree("lightning_logs", ignore_errors=True, onerror=None)
 
     # run the hyperparameter tuning
     tune_regression_asha(
-        num_samples=5,
+        num_epochs=30,
+        num_samples=15,
         cpus_per_trial=2,
         data_fp="/workspaces/devcontainer_testbed/data/data.parquet"
     )
