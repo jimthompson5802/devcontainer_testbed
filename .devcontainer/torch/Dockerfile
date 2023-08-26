@@ -6,7 +6,8 @@ RUN apt-get update && apt-get install -y git net-tools
 
 # Install any additional packages you need
 RUN pip install ray[air] scikit-learn pytorch-lightning \
-    ipywidgets matplotlib seaborn pandas ipykernel
+    ipywidgets matplotlib seaborn pandas ipykernel \
+    tensorboard 
 
 # Set the working directory
 WORKDIR /workspace
