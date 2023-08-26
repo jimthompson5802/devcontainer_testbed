@@ -7,6 +7,12 @@
     "extensions": [
 		"ms-python.python",
 		"pylance",
-		"GitHub.copilot"
-	]
+		"GitHub.copilot",
+		"donjayamanne.git-extension-pack",
+		"ms-toolsai.jupyter",
+		"ms-azuretools.vscode-docker"
+	],
+    "forwardPorts": [
+        8265
+    ],
 }

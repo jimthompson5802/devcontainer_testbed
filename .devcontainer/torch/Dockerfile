@@ -2,10 +2,11 @@
 FROM pytorch/pytorch:latest
 
 # install git
-RUN apt-get update && apt-get install -y git
+RUN apt-get update && apt-get install -y git net-tools
 
 # Install any additional packages you need
-RUN pip install ray[tune] scikit-learn pytorch-lightning
+RUN pip install ray[air] scikit-learn pytorch-lightning \
+    ipywidgets matplotlib seaborn pandas ipykernel
 
 # Set the working directory
 WORKDIR /workspace
