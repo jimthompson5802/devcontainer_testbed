@@ -288,7 +288,7 @@ def tune_regression_asha(num_samples=10, num_epochs=10, cpus_per_trial=1, gpus_p
     reporter = CLIReporter(
         max_report_frequency=15,
         parameter_columns=["layer_1_size", "layer_2_size", "lr", "batch_size"],
-        metric_columns=["loss", "total_time_s", "training_iteration"])
+        metric_columns=["loss", "time_total_s", "training_iteration"])
 
     # setup for train function with parameters fir tune
     train_fn_with_parameters = tune.with_parameters(
