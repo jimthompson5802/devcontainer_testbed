@@ -1,6 +1,7 @@
 import math
 
 import torch
+from torchinfo import summary
 import pytorch_lightning as pl
 from filelock import FileLock
 from torch.utils.data import Dataset, DataLoader, random_split
@@ -107,7 +108,19 @@ class RegressionModel(pl.LightningModule):
     def on_validation_epoch_end(self) -> None:
         avg_loss = torch.stack(self.val_loss_list).mean()
         self.log("ptl/val_loss", avg_loss)
-    
+
+    def on_before_optimizer_step(self, optimizer):
+            # example to inspect gradient information in tensorboard
+            if self.trainer.global_step % 25 == 0:  # don't make the tf file huge
+                for k, v in self.named_parameters():
+                    self.logger.experiment.add_histogram(
+                        tag="grad/" + k, values=v.grad, global_step=self.trainer.global_step
+                    )
+                    self.logger.experiment.add_scalar(
+                        "grad/" + k + "_norm", 
+                        torch.linalg.vector_norm(v.grad).item(), 
+                        global_step=self.trainer.global_step
+                    )
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
@@ -146,6 +159,19 @@ class RegressionDataModule(pl.LightningDataModule):
             batch_size=int(self.batch_size), 
             num_workers=self.num_workers,
         )
+
+
+###
+# Display model summary
+###
+# model = RegressionModel(
+#     config={"layer_1_size": 32, "layer_2_size": 64, "lr": 1e-4, },
+#     n_features=N_FEATURES
+# )
+# print(model)
+# print(summary(model, input_size=(1, N_FEATURES)))
+# sys.exit(0)
+
 
 
 ###
@@ -301,7 +327,7 @@ if __name__ == "__main__":
     # run the hyperparameter tuning
     tune_regression_asha(
         num_epochs=10,
-        num_samples=15,
+        num_samples=5,
         cpus_per_trial=2,
         data_fp="/workspaces/devcontainer_testbed/data/data.parquet"
     )
