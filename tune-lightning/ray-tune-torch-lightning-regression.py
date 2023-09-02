@@ -7,9 +7,12 @@ from filelock import FileLock
 from torch.utils.data import Dataset, DataLoader, random_split
 from torch.nn import functional as F
 import os
+import pprint
 import sys
 import shutil
 import time
+import yaml
+
 from sklearn.datasets import make_regression
 import pandas as pd
 
@@ -22,10 +25,25 @@ from ray.tune.schedulers import ASHAScheduler, PopulationBasedTraining
 from ray.tune.integration.pytorch_lightning import TuneReportCallback, \
     TuneReportCheckpointCallback
 
+# config pprint.pprint
+pp = pprint.PrettyPrinter(indent=4)
+
 
 # constants
-N_SAMPLES = 50_000
+N_SAMPLES = 10_000
 N_FEATURES = 100
+TENSORBOARD_LOG_FREQUENCY = 25
+
+# retrieve run-time config
+with open("config_regression.yaml", "r") as f:
+    config = yaml.safe_load(f)
+
+pp.pprint(config)
+
+DATA_DIR = config["data_dir"]
+RAY_RESULTS_DIR = config["ray_results_dir"]
+LIGHTNING_LOGS_DIR = config["lightning_logs_dir"]
+
 
 # create synthetic regression dataset
 X, y = make_regression(n_samples=N_SAMPLES, n_features=N_FEATURES, noise=0.1, random_state=1)
@@ -40,7 +58,8 @@ print(f"size of dataframe: {df.memory_usage(deep=True).sum() / (1024*1024)} MB")
 print(df.head())
 
 # save dataframe to paraquet
-df.to_parquet("../data/data.parquet")
+os.makedirs(DATA_DIR, exist_ok=True)
+df.to_parquet(os.path.join(DATA_DIR, "data.parquet"))
 
 
 # class for custom pytorch dataset
@@ -56,7 +75,7 @@ class CustomDataset(Dataset):
         return self.data[idx], self.target[idx]
 
 
-class RegressionModel(pl.LightningModule):
+class TheModel(pl.LightningModule):
 
     def __init__(self, config, n_features: int=None) -> None:
         super().__init__()
@@ -88,15 +107,18 @@ class RegressionModel(pl.LightningModule):
 
         return x
 
-    def rmse_loss(self, logits, labels) -> torch.Tensor:
+    def loss_function(self, logits, labels) -> torch.Tensor:
         return torch.sqrt(F.mse_loss(logits, labels.reshape(-1, 1)))
 
+    def configure_optimizers(self):
+        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
+        return optimizer
 
     def training_step(self, train_batch, batch_idx) -> torch.Tensor:
         # print(f">>>>{os.getpid()} entering training_step, epoch {self.current_epoch}, batch_idx: {batch_idx}, batch_size: {train_batch[0].shape}")
         x, y = train_batch
         logits = self.forward(x)
-        loss = self.rmse_loss(logits, y)
+        loss = self.loss_function(logits, y)
 
         self.log("ptl/train_loss", loss)
         return loss
@@ -105,7 +127,7 @@ class RegressionModel(pl.LightningModule):
         # print(f">>>>{os.getpid()} entering validation_step, batch_idx: {batch_idx}, batch_size: {val_batch[0].shape}")
         x, y = val_batch
         logits = self.forward(x)
-        loss = self.rmse_loss(logits, y)
+        loss = self.loss_function(logits, y)
         self.val_loss_list.append(loss)
         return loss
 
@@ -115,7 +137,7 @@ class RegressionModel(pl.LightningModule):
 
     def on_before_optimizer_step(self, optimizer):
             # example to inspect gradient information in tensorboard
-            if self.trainer.global_step % 25 == 0:  # don't make the tf file huge
+            if self.trainer.global_step % TENSORBOARD_LOG_FREQUENCY == 0:  # don't make the tf file huge
                 for k, v in self.named_parameters():
                     self.logger.experiment.add_histogram(
                         tag="raw/" + k, 
@@ -132,10 +154,6 @@ class RegressionModel(pl.LightningModule):
                         torch.linalg.vector_norm(v.grad).item(), 
                         global_step=self.trainer.global_step
                     )
-
-    def configure_optimizers(self):
-        optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-        return optimizer
 
 
 # Define the LightningDataModule
@@ -219,7 +237,7 @@ def train_regression_tune(config, num_epochs=10, num_cpus=1, num_gpus=0, data_fp
     torch.set_num_threads(num_cpus)
     print(f">>>>{os.getpid()} after setting torch num_threads {torch.get_num_threads()}")
 
-    model = RegressionModel(config, n_features=N_FEATURES)
+    model = TheModel(config, n_features=N_FEATURES)
 
     data_module = RegressionDataModule(
         data_fp=data_fp, 
@@ -316,7 +334,7 @@ def tune_regression_asha(num_samples=10, num_epochs=10, cpus_per_trial=1, gpus_p
             name="tune_regression_asha",
             progress_reporter=reporter,
             log_to_file=True,
-            local_dir="ray_results",
+            local_dir=RAY_RESULTS_DIR,
         ),
         param_space=config,
     )
@@ -334,15 +352,15 @@ def tune_regression_asha(num_samples=10, num_epochs=10, cpus_per_trial=1, gpus_p
 
 if __name__ == "__main__":
     # clear out ray results directory
-    shutil.rmtree("ray_results", ignore_errors=True, onerror=None)
-    shutil.rmtree("lightning_logs", ignore_errors=True, onerror=None)
+    shutil.rmtree(RAY_RESULTS_DIR, ignore_errors=True, onerror=None)
+    shutil.rmtree(LIGHTNING_LOGS_DIR, ignore_errors=True, onerror=None)
 
     # run the hyperparameter tuning
     tune_regression_asha(
         num_epochs=10,
         num_samples=5,
         cpus_per_trial=2,
-        data_fp="/workspaces/devcontainer_testbed/data/data.parquet"
+        data_fp=os.path.join(DATA_DIR, "data.parquet")
     )
 
     # all done

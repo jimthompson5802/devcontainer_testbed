@@ -1,0 +1,8 @@
+# location to place ray tune results
+ray_results_dir: ray_results
+
+# locaton to place data
+data_dir: /workspaces/devcontainer_testbed/data
+
+# location for lightning logs
+lightning_logs_dir: lightning_logs
