@@ -70,6 +70,10 @@ class RegressionModel(pl.LightningModule):
         self.layer_2 = torch.nn.Linear(self.layer_1_size, self.layer_2_size)
         self.layer_3 = torch.nn.Linear(self.layer_2_size, 1)
 
+        # example input array, required for TensorBoard Logger with
+        # parameter log_graph=True
+        self.example_input_array = torch.rand(1, n_features)
+
         self.val_loss_list = []
 
     def forward(self, x) -> torch.Tensor:
@@ -114,7 +118,14 @@ class RegressionModel(pl.LightningModule):
             if self.trainer.global_step % 25 == 0:  # don't make the tf file huge
                 for k, v in self.named_parameters():
                     self.logger.experiment.add_histogram(
-                        tag="grad/" + k, values=v.grad, global_step=self.trainer.global_step
+                        tag="raw/" + k, 
+                        values=v, 
+                        global_step=self.trainer.global_step
+                    )
+                    self.logger.experiment.add_histogram(
+                        tag="grad/" + k, 
+                        values=v.grad, 
+                        global_step=self.trainer.global_step
                     )
                     self.logger.experiment.add_scalar(
                         "grad/" + k + "_norm", 
@@ -230,7 +241,9 @@ def train_regression_tune(config, num_epochs=10, num_cpus=1, num_gpus=0, data_fp
         # If fractional GPUs passed in, convert to int.
         # gpus=math.ceil(num_gpus),
         logger=TensorBoardLogger(
-            save_dir=os.getcwd(), name="", version="."),
+            log_graph=True,
+            save_dir=os.getcwd(), name="", version="."
+        ),
         enable_progress_bar=False,
         callbacks=[
             early_stop_callback,
@@ -275,7 +288,7 @@ def tune_regression_asha(num_samples=10, num_epochs=10, cpus_per_trial=1, gpus_p
     reporter = CLIReporter(
         max_report_frequency=15,
         parameter_columns=["layer_1_size", "layer_2_size", "lr", "batch_size"],
-        metric_columns=["loss", "mean_accuracy", "training_iteration"])
+        metric_columns=["loss", "total_time_s", "training_iteration"])
 
     # setup for train function with parameters fir tune
     train_fn_with_parameters = tune.with_parameters(
