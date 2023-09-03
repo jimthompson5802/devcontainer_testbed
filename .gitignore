@@ -9,4 +9,5 @@ tune-ptl-example/
 
 # data directory
 data/
+mnist-data/
 lightning_logs/
