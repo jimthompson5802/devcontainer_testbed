@@ -8,6 +8,7 @@ ray_results/
 tune-ptl-example/
 
 # data directory
+*.lock
 data/
 mnist-data/
 lightning_logs/
