@@ -4,6 +4,7 @@ import shutil
 import sys
 
 import pandas as pd
+import numpy as np
 
 
 # define Torch Lightning Module for regression
@@ -89,7 +90,12 @@ class RegressionDataModule(pl.LightningDataModule):
             self.test_y = torch.tensor(self.test_df["y"].values, dtype=torch.float32)
 
     def train_dataloader(self):
-        return DataLoader(TensorDataset(self.train_X, self.train_y), batch_size=self.batch_size, shuffle=True)
+        return DataLoader(
+            TensorDataset(self.train_X, self.train_y), 
+            batch_size=self.batch_size, 
+            shuffle=False,
+            num_workers=4,
+        )
 
     def val_dataloader(self):
         return DataLoader(TensorDataset(self.val_X, self.val_y), batch_size=self.batch_size, shuffle=False)
@@ -97,7 +103,8 @@ class RegressionDataModule(pl.LightningDataModule):
     def test_dataloader(self):
         return DataLoader(TensorDataset(self.test_X, self.test_y), batch_size=self.batch_size, shuffle=False)
 
-def do_a_run(train_df, test_df, seed, logger_name="regression"):
+def do_a_single_run(train_df, test_df, seed, logger_version=None):
+    print(f">>>>single run: {logger_version}")
     # set seeds to ensure reproducibility
     pl.seed_everything(seed)
 
@@ -110,9 +117,16 @@ def do_a_run(train_df, test_df, seed, logger_name="regression"):
     # define trainer
     trainer = pl.Trainer(
         max_epochs=15,
-        logger=pl.loggers.TensorBoardLogger("lightning_logs/", name=logger_name),
-        callbacks=[pl.callbacks.ModelCheckpoint(monitor="ptl/val_loss", save_last=True, mode="min")],
-    )
+        deterministic=True,
+        logger=pl.loggers.TensorBoardLogger(
+            "lightning_logs/", 
+            name="reproducibility", 
+            version=logger_version
+        ),
+        callbacks=[
+            pl.callbacks.ModelCheckpoint(monitor="ptl/val_loss", save_last=True, mode="min"),
+        ],
+    )    
 
     # train model
     trainer.fit(model, data_module)
@@ -121,7 +135,80 @@ def do_a_run(train_df, test_df, seed, logger_name="regression"):
     trainer.test(model, data_module)
     run_test_loss = model.overall_test_loss
 
-    return run_test_loss
+    return run_test_loss, trainer.model
+
+def do_a_resume_run(train_df, test_df, seed, logger_version=None):
+    print(f">>>>start of resume run initial training: {logger_version}")
+    # set seeds to ensure reproducibility
+    pl.seed_everything(seed)
+
+    # define data module
+    data_module = RegressionDataModule(train_df, test_df)
+
+    # define model
+    model = RegressionModel(input_dim=100, output_dim=1)
+
+    # define trainer for initial run
+    trainer = pl.Trainer(
+        max_epochs=10,
+        deterministic=True,
+        logger=pl.loggers.TensorBoardLogger(
+            "lightning_logs/", 
+            name="reproducibility", 
+            version=logger_version
+        ),
+        callbacks=[
+            pl.callbacks.ModelCheckpoint(monitor="ptl/val_loss", save_last=True, mode="min"),
+        ],
+    )    
+
+    # train model
+    trainer.fit(model, data_module)
+
+    # trainer.save_checkpoint("lightning_logs/reproducibility/"+ logger_version + "/checkpoints/model_save.ckpt")
+    ckpt = torch.load("lightning_logs/reproducibility/"+ logger_version + "/checkpoints/last.ckpt")
+
+
+    # define trainer for resume training run
+    print(f">>>>start of resume training run: {logger_version}")
+    # define model
+    model_resume = RegressionModel(100,1)
+
+    trainer_resume = pl.Trainer(
+        max_epochs=15,
+        deterministic=True,
+        logger=pl.loggers.TensorBoardLogger(
+            "lightning_logs/", 
+            name="reproducibility", 
+            version=logger_version
+        ),
+        callbacks=[
+            pl.callbacks.ModelCheckpoint(monitor="ptl/val_loss", save_last=True, mode="min"),
+        ],
+    )    
+
+    # define data module
+    data_module_resume = RegressionDataModule(train_df, test_df)
+
+
+    # train model
+    trainer_resume.fit(
+        model_resume, 
+        data_module_resume,
+        ckpt_path="lightning_logs/reproducibility/"+ logger_version + "/checkpoints/last.ckpt"
+    )
+
+
+    # test model
+    trainer_resume.test(model_resume, data_module_resume)
+    run_test_loss = model_resume.overall_test_loss
+
+    return run_test_loss, trainer_resume.model
+
+def compare_model_parameters(model1: pl.LightningModule, model2: pl.LightningModule)-> bool :
+    return np.all(
+        [torch.allclose(param1, param2) for param1, param2 in zip(model1.parameters(), model2.parameters())]
+    )
 
 
 if __name__ == "__main__":
@@ -131,10 +218,15 @@ if __name__ == "__main__":
 
     shutil.rmtree("lightning_logs/", ignore_errors=True)    
 
-    run1_test_loss = do_a_run(train_df, test_df, 1919, logger_name="run1")
-    run2_test_loss = do_a_run(train_df, test_df, 1919, logger_name="run2")
+    run1_test_loss, model1 = do_a_single_run(train_df, test_df, 1919, logger_version="run1")
+    run2_test_loss, model2 = do_a_single_run(train_df, test_df, 1919, logger_version="run2")
+    run3_test_loss, model3 = do_a_resume_run(train_df, test_df, 1919, logger_version="run3")
     print(
         f"run1_test_loss: {run1_test_loss:0.4f}\n"
-        f"run2_test_loss: {run2_test_loss:0.4f}"
+        f"run2_test_loss: {run2_test_loss:0.4f}\n"
+        f"run3_test_loss: {run3_test_loss:0.4f}\n"
     )
   
+    # check if model parameters are the same
+    print(f"run1 and run2 model parameters are the same: {compare_model_parameters(model1, model2)}")
+    print(f"run1 and run3 model parameters are the same: {compare_model_parameters(model1, model3)}")
