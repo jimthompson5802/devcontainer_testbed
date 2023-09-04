@@ -60,9 +60,6 @@ class RegressionModel(pl.LightningModule):
     
 
 # define data module for training and test data
-from torch.utils.data import DataLoader, TensorDataset
-
-
 class RegressionDataModule(pl.LightningDataModule):
     def __init__(self, train_df, test_df, batch_size=64):
         super().__init__()
@@ -165,12 +162,9 @@ def do_a_resume_run(train_df, test_df, seed, logger_version=None):
     # train model
     trainer.fit(model, data_module)
 
-    # trainer.save_checkpoint("lightning_logs/reproducibility/"+ logger_version + "/checkpoints/model_save.ckpt")
-    ckpt = torch.load("lightning_logs/reproducibility/"+ logger_version + "/checkpoints/last.ckpt")
-
-
     # define trainer for resume training run
     print(f">>>>start of resume training run: {logger_version}")
+
     # define model
     model_resume = RegressionModel(100,1)
 
@@ -190,14 +184,12 @@ def do_a_resume_run(train_df, test_df, seed, logger_version=None):
     # define data module
     data_module_resume = RegressionDataModule(train_df, test_df)
 
-
-    # train model
+    # continue training model from last checkpoint
     trainer_resume.fit(
         model_resume, 
         data_module_resume,
         ckpt_path="lightning_logs/reproducibility/"+ logger_version + "/checkpoints/last.ckpt"
     )
-
 
     # test model
     trainer_resume.test(model_resume, data_module_resume)
