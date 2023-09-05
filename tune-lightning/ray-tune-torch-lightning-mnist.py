@@ -83,8 +83,20 @@ class TheModel(pl.LightningModule):
     def forward(self, x):
         x = self.conv1(x)
         x = F.relu(x)
+        self.logger.experiment.add_histogram(
+            tag="actv/conv1",
+            values=x, 
+            global_step=self.trainer.global_step
+        )
+  
         x = self.conv2(x)
         x = F.relu(x)
+        self.logger.experiment.add_histogram(
+            tag="actv/conv2",
+            values=x, 
+            global_step=self.trainer.global_step
+        )
+
         x = F.max_pool2d(x, 2)
         x = self.dropout1(x)
         x = torch.flatten(x, 1)
@@ -227,7 +239,7 @@ default_config = {
 }
 model = TheModel(config=default_config)
 print(model)
-print(summary(model, input_size=(1, 1, 28, 28)))
+# print(summary(model, input_size=(1, 1, 28, 28)))
 # sys.exit(0)
 
 
