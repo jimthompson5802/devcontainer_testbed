@@ -138,17 +138,23 @@ with torch.no_grad():
 print(">>>>>>MODEL LOADING<<<<<<")
 model2 = RegressionModel.load_from_checkpoint(
     "lightning_logs/testbed/bed1/checkpoints/last.ckpt",
-    hparams_file="lightning_logs/testbed/bed1/hparams.yaml",
 )
 
 # make predictions  
 print(type(model2))
+
+print(">>>>>>predictions with torch.no_grad()<<<<<<")
 with torch.no_grad():   
     print(model2(x))
 
-
-dl = DataLoader(TensorDataset(x), batch_size=2, shuffle=False)
+# alternative way to make predictions
+print(">>>>>>predictions with eval()/freeze()<<<<<<")
 model2.eval()
+model2.freeze()
+print(model2(x))
+
+
+print(">>>>>>predictions with dataloader<<<<<<")
+dl = DataLoader(TensorDataset(x), batch_size=2, shuffle=False)
 for batch in dl:
-    with torch.no_grad():
-        print(model2(batch[0]))
+    print(model2(batch[0]))
