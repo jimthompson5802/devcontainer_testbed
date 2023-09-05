@@ -103,6 +103,9 @@ if __name__ == "__main__":
     train_df = pd.read_parquet(os.path.join("./data", "train_data.parquet"))
     test_df = pd.read_parquet(os.path.join("./data", "test_data.parquet"))
 
+    x = torch.tensor(np.random.rand(7, 100), dtype=torch.float32)
+    print(x.shape)
+
     shutil.rmtree("lightning_logs/testbed", ignore_errors=True)
 
     # define data module
@@ -127,22 +130,25 @@ if __name__ == "__main__":
     # train model
     trainer.fit(model, data_module)
 
+print(">>>>>>PREDICTIONS WITH ORIGINAL MODEL<<<<<")
+with torch.no_grad():
+    print(trainer.model(x))    
+
 # load trained model
-model = RegressionModel.load_from_checkpoint(
+print(">>>>>>MODEL LOADING<<<<<<")
+model2 = RegressionModel.load_from_checkpoint(
     "lightning_logs/testbed/bed1/checkpoints/last.ckpt",
     hparams_file="lightning_logs/testbed/bed1/hparams.yaml",
 )
 
 # make predictions  
-print(type(model))
-x = torch.tensor(np.random.rand(7, 100), dtype=torch.float32)
-print(x.shape)
+print(type(model2))
 with torch.no_grad():   
-    print(model(x))
+    print(model2(x))
 
 
 dl = DataLoader(TensorDataset(x), batch_size=2, shuffle=False)
-model.eval()
+model2.eval()
 for batch in dl:
     with torch.no_grad():
-        print(model(batch[0]))
+        print(model2(batch[0]))
