@@ -135,13 +135,13 @@ model = RegressionModel.load_from_checkpoint(
 
 # make predictions  
 print(type(model))
-x = torch.tensor(np.random.rand(4, 100), dtype=torch.float32)
+x = torch.tensor(np.random.rand(7, 100), dtype=torch.float32)
 print(x.shape)
 with torch.no_grad():   
     print(model(x))
 
 
-dl = DataLoader(TensorDataset(x), batch_size=4, shuffle=False)
+dl = DataLoader(TensorDataset(x), batch_size=2, shuffle=False)
 model.eval()
 for batch in dl:
     with torch.no_grad():
