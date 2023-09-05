@@ -19,6 +19,7 @@ import pytorch_lightning as pl
 class RegressionModel(pl.LightningModule):
     def __init__(self, input_dim, output_dim):
         super().__init__()
+        self.save_hyperparameters()
         self.fc1 = nn.Linear(input_dim, 128)
         self.fc2 = nn.Linear(128, 256)
         self.fc3 = nn.Linear(256, output_dim)
@@ -166,7 +167,7 @@ def do_a_resume_run(train_df, test_df, seed, logger_version=None):
     print(f">>>>start of resume training run: {logger_version}")
 
     # define model
-    model_resume = RegressionModel(100,1)
+    model_resume = RegressionModel.load_from_checkpoint("lightning_logs/reproducibility/"+ logger_version + "/checkpoints/last.ckpt")
 
     trainer_resume = pl.Trainer(
         max_epochs=15,
