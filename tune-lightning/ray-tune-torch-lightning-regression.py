@@ -1,6 +1,7 @@
 import math
 
 import torch
+from torch.optim.lr_scheduler import StepLR  # Import the StepLR scheduler
 from torchinfo import summary
 import pytorch_lightning as pl
 from filelock import FileLock
@@ -17,6 +18,7 @@ from sklearn.datasets import make_regression
 import pandas as pd
 
 from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.callbacks import EarlyStopping, LearningRateMonitor
 import ray
 from ray import tune, air
 # from ray.air import session
@@ -83,6 +85,7 @@ class TheModel(pl.LightningModule):
         self.layer_1_size = config["layer_1_size"]
         self.layer_2_size = config["layer_2_size"]
         self.lr = config["lr"]
+        self.use_lr_scheduler = config["use_lr_scheduler"]
 
         # mnist images are (1, 28, 28) (channels, width, height)
         self.layer_1 = torch.nn.Linear(n_features, self.layer_1_size)
@@ -112,7 +115,11 @@ class TheModel(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=self.lr)
-        return optimizer
+        if self.use_lr_scheduler:
+            scheduler = StepLR(optimizer, step_size=1, gamma=0.7)  # Add StepLR scheduler
+            return {'optimizer': optimizer, 'lr_scheduler': scheduler}
+        else:
+            return optimizer
 
     def training_step(self, train_batch, batch_idx) -> torch.Tensor:
         # print(f">>>>{os.getpid()} entering training_step, epoch {self.current_epoch}, batch_idx: {batch_idx}, batch_size: {train_batch[0].shape}")
@@ -246,12 +253,23 @@ def train_regression_tune(config, num_epochs=10, num_cpus=1, num_gpus=0, data_fp
     )
 
     # define EarlyStopping callback
-    early_stop_callback = pl.callbacks.EarlyStopping(
+    early_stop_callback = EarlyStopping(
         monitor="ptl/val_loss",
         min_delta=0.00,
         patience=5,
         verbose=False,
         mode="min"
+    )
+
+    # define learning rate monitor callback
+    lr_monitor_callback = LearningRateMonitor()
+
+    # tune report callback
+    tune_report_callback = TuneReportCallback(
+        {
+            "loss": "ptl/val_loss",
+        },
+        on="validation_end"
     )
 
     trainer = pl.Trainer(
@@ -265,11 +283,8 @@ def train_regression_tune(config, num_epochs=10, num_cpus=1, num_gpus=0, data_fp
         enable_progress_bar=False,
         callbacks=[
             early_stop_callback,
-            TuneReportCallback(
-                {
-                    "loss": "ptl/val_loss",
-                },
-                on="validation_end")
+            lr_monitor_callback,
+            tune_report_callback,
         ]
     )
 
@@ -294,6 +309,7 @@ def tune_regression_asha(num_samples=10, num_epochs=10, cpus_per_trial=1, gpus_p
         "layer_2_size": tune.choice([64, 128, 256]),
         "lr": tune.loguniform(1e-4, 1e-1),
         "batch_size": tune.choice([32, 64, 128]),
+        "use_lr_scheduler": tune.choice([True, False]),
     }
     print(f">>>>{os.getpid()} entering train_regression_asha with config: {config}")
 
@@ -358,7 +374,7 @@ if __name__ == "__main__":
     # run the hyperparameter tuning
     tune_regression_asha(
         num_epochs=10,
-        num_samples=5,
+        num_samples=10,
         cpus_per_trial=2,
         data_fp=os.path.join(DATA_DIR, "data.parquet")
     )
