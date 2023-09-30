@@ -23,6 +23,7 @@ import ray
 from ray import tune, air
 # from ray.air import session
 from ray.tune import CLIReporter
+from ray.tune.search.bayesopt import BayesOptSearch
 from ray.tune.schedulers import ASHAScheduler, PopulationBasedTraining
 from ray.tune.integration.pytorch_lightning import TuneReportCallback, \
     TuneReportCheckpointCallback
@@ -318,6 +319,16 @@ def tune_regression_asha(num_samples=10, num_epochs=10, cpus_per_trial=1, gpus_p
         max_t=num_epochs,
         grace_period=1,
         reduction_factor=2)
+
+    # define the search algorithm
+    search_alg = BayesOptSearch(
+        metric="loss",
+        mode="min",
+        utility_kwargs={
+            "kind": "ucb",
+            "kappa": 2.5,
+            "xi": 0.0
+        })
 
     reporter = CLIReporter(
         max_report_frequency=15,
