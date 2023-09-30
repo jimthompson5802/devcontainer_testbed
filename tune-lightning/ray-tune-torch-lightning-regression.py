@@ -23,6 +23,7 @@ import ray
 from ray import tune, air
 # from ray.air import session
 from ray.tune import CLIReporter
+from ray.tune.search import ConcurrencyLimiter
 from ray.tune.search.bayesopt import BayesOptSearch
 from ray.tune.schedulers import ASHAScheduler, PopulationBasedTraining
 from ray.tune.integration.pytorch_lightning import TuneReportCallback, \
@@ -83,10 +84,10 @@ class TheModel(pl.LightningModule):
     def __init__(self, config, n_features: int=None) -> None:
         super().__init__()
 
-        self.layer_1_size = config["layer_1_size"]
-        self.layer_2_size = config["layer_2_size"]
+        self.layer_1_size = int(config["layer_1_size"])
+        self.layer_2_size = int(config["layer_2_size"])
         self.lr = config["lr"]
-        self.use_lr_scheduler = config["use_lr_scheduler"]
+        self.use_lr_scheduler = True if config["use_lr_scheduler"] > 0.5 else False
 
         # mnist images are (1, 28, 28) (channels, width, height)
         self.layer_1 = torch.nn.Linear(n_features, self.layer_1_size)
@@ -306,11 +307,11 @@ def tune_regression_asha(num_samples=10, num_epochs=10, cpus_per_trial=1, gpus_p
     start_time = time.time()
 
     config = {
-        "layer_1_size": tune.choice([32, 64, 128]),
-        "layer_2_size": tune.choice([64, 128, 256]),
+        "layer_1_size": tune.uniform(32, 128),
+        "layer_2_size": tune.uniform(64, 256),
         "lr": tune.loguniform(1e-4, 1e-1),
-        "batch_size": tune.choice([32, 64, 128]),
-        "use_lr_scheduler": tune.choice([True, False]),
+        "batch_size": tune.uniform(32, 128),
+        "use_lr_scheduler": tune.uniform(0, 1),
     }
     print(f">>>>{os.getpid()} entering train_regression_asha with config: {config}")
 
@@ -329,6 +330,7 @@ def tune_regression_asha(num_samples=10, num_epochs=10, cpus_per_trial=1, gpus_p
             "kappa": 2.5,
             "xi": 0.0
         })
+    search_alg = ConcurrencyLimiter(search_alg, max_concurrent=4)
 
     reporter = CLIReporter(
         max_report_frequency=15,
@@ -355,6 +357,7 @@ def tune_regression_asha(num_samples=10, num_epochs=10, cpus_per_trial=1, gpus_p
             metric="loss",
             mode="min",
             scheduler=scheduler,
+            search_alg=search_alg,
             num_samples=num_samples,
         ),
         run_config=air.RunConfig(
