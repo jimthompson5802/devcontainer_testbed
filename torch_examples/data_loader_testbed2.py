@@ -7,8 +7,9 @@ import torch
 from torch.utils.data import Dataset, DataLoader
 
 
-NUM_ROWS = 5
-NUM_FEATURES = 10
+NUM_ROWS = 500_010
+NUM_FEATURES = 100
+EPOCHS = 5
 
 # Generate synthetic regression data with 100 features and 1000 rows
 X, y = make_regression(n_samples=NUM_ROWS, n_features=NUM_FEATURES, random_state=42)
@@ -35,12 +36,12 @@ class RegressionDataset(Dataset):
         
     def __len__(self):
         # print the pid of the process for this method
-        print(f"pid: {os.getpid()} - len called")
+        # print(f"pid: {os.getpid()} - len called")
         return self.num_rows
     
     def __getitem__(self, idx):
         # print the pid of the process for this method
-        print(f"pid: {os.getpid()} - getitem called")
+        # print(f"pid: {os.getpid()} - getitem called")
 
         if self.X is None or self.y is None:
             self._prepare_data(self.df_fp)
@@ -50,15 +51,16 @@ class RegressionDataset(Dataset):
 dataset = RegressionDataset("regression_data.parquet")
 
 # Create a DataLoader object for the dataset
-dataloader = DataLoader(dataset, batch_size=3, num_workers=1, shuffle=True)    
+dataloader = DataLoader(dataset, batch_size=256, num_workers=4, shuffle=True)    
 
 # cycle through the dataloader
-for epoch in range(2):
+for epoch in range(EPOCHS):
     # print pid of this process
     print(f"pid: {os.getpid()} epoch: {epoch}")
     for i, data in enumerate(dataloader, 0):
         # Get the inputs and labels from the dataloader
         inputs, labels = data
-        print(f"inputs shape: {inputs.shape}, labels shape: {labels.shape}")
+        if i % 100 == 0:
+            print(f"i {i} inputs shape: {inputs.shape}, labels shape: {labels.shape}")
         
 
