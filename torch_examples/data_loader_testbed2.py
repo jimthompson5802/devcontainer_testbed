@@ -16,7 +16,7 @@ X, y = make_regression(n_samples=NUM_ROWS, n_features=NUM_FEATURES, random_state
 df = pd.DataFrame(X, columns=[f"f_{i}" for i in range(NUM_FEATURES)])
 df["target"] = y
 print(df.head())
-df.to_csv("regression_data.csv", index=False)
+df.to_parquet("regression_data.parquet", index=False)
 
 class RegressionDataset(Dataset):
     def __init__(self, df_fp, num_rows=NUM_ROWS):
@@ -29,7 +29,7 @@ class RegressionDataset(Dataset):
  
     def _prepare_data(self, df_fp):
         print(f"pid: {os.getpid()} - preparing data")
-        df = pd.read_csv(df_fp)
+        df = pd.read_parquet(df_fp)
         self.X = torch.tensor(df.drop("target", axis=1).values, dtype=torch.float32)
         self.y = torch.tensor(df["target"].values, dtype=torch.float32)
         
@@ -47,10 +47,10 @@ class RegressionDataset(Dataset):
         return self.X[idx], self.y[idx]
     
 # Create an instance of the RegressionDataset class
-dataset = RegressionDataset("regression_data.csv")
+dataset = RegressionDataset("regression_data.parquet")
 
 # Create a DataLoader object for the dataset
-dataloader = DataLoader(dataset, batch_size=3, num_workers=2, shuffle=True)    
+dataloader = DataLoader(dataset, batch_size=3, num_workers=1, shuffle=True)    
 
 # cycle through the dataloader
 for epoch in range(2):
