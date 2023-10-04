@@ -9,7 +9,7 @@ from torch.utils.data import Dataset, DataLoader
 
 NUM_ROWS = 500_010
 NUM_FEATURES = 100
-EPOCHS = 2
+EPOCHS = 5
 
 # Generate synthetic regression data with 100 features and 1000 rows
 X, y = make_regression(n_samples=NUM_ROWS, n_features=NUM_FEATURES, random_state=42)
@@ -39,7 +39,7 @@ class RegressionDataset(Dataset):
 dataset = RegressionDataset(df)
 
 # Create a DataLoader object for the dataset
-dataloader = DataLoader(dataset, batch_size=256, num_workers=1, shuffle=True)    
+dataloader = DataLoader(dataset, batch_size=256, num_workers=6, shuffle=True)    
 
 # cycle through the dataloader
 for epoch in range(EPOCHS):

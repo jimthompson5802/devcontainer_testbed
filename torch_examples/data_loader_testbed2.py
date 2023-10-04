@@ -51,7 +51,7 @@ class RegressionDataset(Dataset):
 dataset = RegressionDataset("regression_data.parquet")
 
 # Create a DataLoader object for the dataset
-dataloader = DataLoader(dataset, batch_size=256, num_workers=4, shuffle=True)    
+dataloader = DataLoader(dataset, batch_size=256, num_workers=6, shuffle=True)    
 
 # cycle through the dataloader
 for epoch in range(EPOCHS):
