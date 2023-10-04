@@ -1,0 +1,10 @@
+{
+    "name": "ludwig-nightly",
+    "image": "ludwig-ray:nightly",
+    "extensions": [
+        "ms-python.python"
+    ],
+    "settings": {
+        "terminal.integrated.shell.linux": "/bin/bash"
+    }
+}
