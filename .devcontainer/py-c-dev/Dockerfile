@@ -8,6 +8,7 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     gdb \
     cmake \
+    libboost-all-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Optionally, you can install additional tools or libraries here

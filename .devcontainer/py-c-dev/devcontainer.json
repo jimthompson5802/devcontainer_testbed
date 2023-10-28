@@ -19,7 +19,7 @@
 		"ms-vscode.cmake-tools"
 	],
     "forwardPorts": [],                // Forward any ports you need
-    //"postCreateCommand": "pip install -r requirements.txt", // If you have a requirements.txt file for Python dependencies
+    "postCreateCommand": "pip install -r .devcontainer/py-c-dev/requirements.txt", // If you have a requirements.txt file for Python dependencies
     "runArgs": [
         "--cap-add=SYS_PTRACE",
         "--security-opt", "seccomp=unconfined"   // Needed for debugging in some cases
