@@ -8,6 +8,7 @@ CXXFLAGS = -Wall -std=c++17 -fPIC
 SRCS = matrix.cpp matrix_test_pgm.cpp
 OBJS = $(SRCS:.cpp=.o)
 EXEC = matrix_test_pgm
+LIB_OBJS = matrix.o
 LIBRARY = libmatrix.so
 
 all: $(EXEC)
@@ -15,7 +16,7 @@ all: $(EXEC)
 $(EXEC): $(OBJS)
 	$(CXX) $(CXXFLAGS) -o $@ $^
 
-$(LIBRARY): $(OBJS)
+$(LIBRARY): $(LIB_OBJS)
 	$(CXX) $(CXXFLAGS) -shared -o $@ $^
 
 %.o: %.cpp
