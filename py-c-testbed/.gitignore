@@ -1,0 +1,6 @@
+# generated object and libarary files
+*.o
+*.so
+
+# main executable
+matrix_test_pgm
