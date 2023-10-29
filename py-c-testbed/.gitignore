@@ -1,6 +1,7 @@
 # generated object and libarary files
 *.o
 *.so
+__pycache__/
 
 # main executable
 matrix_test_pgm
