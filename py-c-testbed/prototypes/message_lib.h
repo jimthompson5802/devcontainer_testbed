@@ -5,4 +5,7 @@
 
 void printMessage(const std::string &message);
 
+int addNumbers(int a, int b);
+float addNumbers(float a, float b);
+
 #endif // MESSAGE_LIB_H
