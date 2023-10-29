@@ -1,4 +1,4 @@
-# Initial protype for Python/C++ integration using pybind11
+# Initial prototype for Python/C++ integration using pybind11
 
 ## To run this prototype:
 ```bash
