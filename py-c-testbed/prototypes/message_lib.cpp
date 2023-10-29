@@ -1,7 +1,7 @@
 #include "message_lib.h"
 
-void printMessage(const std::string &message) {
-    std::cout << message << std::endl;
+std::string echoMessage(const std::string &message) {
+    return "echo " + message;
 }
 
 int addNumbers(int a, int b) {

@@ -25,7 +25,12 @@ run: main
 run_python: cppmodule$(PYSUFFIX)
 	python3 main.py
 
+test: cppmodule$(PYSUFFIX)
+	pytest -v test_prototype.py
+
+run_all: run run_python test
+
 clean:
 	rm -f main *.o cppmodule$(PYSUFFIX)
 
-.PHONY: all run run_python clean
+.PHONY: all run run_python clean test run_all

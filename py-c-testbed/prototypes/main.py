@@ -1,8 +1,8 @@
 import cppmodule as cm
 
-cm.print_message("Hello from Python using C++!")
-cm.print_message("Hello again from Python using C++!")
-cm.print_message("Hello again again from Python using C++!")
+print(cm.echo_message("Hello from Python using C++!"))
+print(cm.echo_message("Hello again from Python using C++!"))
+print(cm.echo_message("Hello again again from Python using C++!"))
 
 for a, b in zip([1, 2, 3], [4, 5, 6]):
     answer = cm.add_numbers(a, b)

@@ -1,7 +1,8 @@
 #include "message_lib.h"
 
 int main() {
-    printMessage("Hello, world!");
+    std::cout << echoMessage("Hello, world!") << std::endl;
+    
     int sum = addNumbers(2, 3);
     std::cout << "The sum of 2 and 3 is " << sum << std::endl;
 
