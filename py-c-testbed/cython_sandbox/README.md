@@ -3,8 +3,8 @@
 ## Development Environment Setup
 Requires C/C++ compiler with OpenMP support and Cython. For details see the following on development environment setup:
 - [`devcontainer.json`](../../.devcontainer/py-c-dev/devcontainer.json)
-- [Dockerfile](../../.devcontainer/py-c-dev/Dockerfile)
-- [requirements.txt](../../.devcontainer/py-c-dev/requirements.txt)
+- [`Dockerfile`](../../.devcontainer/py-c-dev/Dockerfile)
+- [`requirements.txt`](../../.devcontainer/py-c-dev/requirements.txt)
 
 
 ## Example Cython Files
