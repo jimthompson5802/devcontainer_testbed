@@ -19,7 +19,9 @@ Requires C/C++ compiler with OpenMP support and Cython. For details see the foll
 
 ## Testing Cython Code
 
-`notebook_testbed.ipynb`: This is a Jupyter notebook file that seems to be used for testing Cython code. It contains cells for importing Cython, testing inline compilation, and executing the compiled functions.
+`notebook_testbed.ipynb`: This is a Jupyter notebook file that seems to be used for testing Cython code. It contains cells for importing Cython, testing inline compilation, and executing the compiled functions for matrix multiplication.  It compares runtime for both a naive numpy matrix multiplication and the equivalent Cython implementation.
+
+`sample_cython.py`: This Python script uses Cython modules `fib` and `add_vectors` to compute the 2000th Fibonacci number and add two numpy arrays `a` and `b`, respectively. The result of the vector addition is then printed to the console.
 
 
 ## Building Cython extension module 
