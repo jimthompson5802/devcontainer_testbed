@@ -16,7 +16,8 @@
 		"GitHub.copilot-chat",
 		"ms-vscode.makefile-tools",
 		"ms-vscode.cpptools-extension-pack",
-		"ms-vscode.cmake-tools"
+		"ms-vscode.cmake-tools",
+		"ms-toolsai.jupyter"
 	],
     "forwardPorts": [],                // Forward any ports you need
     "postCreateCommand": "pip install -r .devcontainer/py-c-dev/requirements.txt", // If you have a requirements.txt file for Python dependencies
