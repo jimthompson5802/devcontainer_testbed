@@ -2,3 +2,4 @@ numpy
 pybind11
 pytest
 cython
+ipykernel
