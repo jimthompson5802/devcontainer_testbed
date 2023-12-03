@@ -1,3 +1,6 @@
+# to build extexsion module run:
+# cythonize -i matrix_multiply.pyx
+
 #cython: language_level=3
 
 cimport cython
