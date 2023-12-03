@@ -5,6 +5,9 @@
 *.cpp
 __pycache__/
 
+# generated output
+*.html
+
 # main executable
 matrix_test_pgm
 prototypes/main
