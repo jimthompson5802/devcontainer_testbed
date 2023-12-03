@@ -1,0 +1,10 @@
+# generated object and libarary files
+*.o
+*.so
+*.c
+*.cpp
+__pycache__/
+
+# main executable
+matrix_test_pgm
+prototypes/main
