@@ -3,3 +3,8 @@ pybind11
 pytest
 cython
 ipykernel
+numba
+pandas
+matplotlib
+seaborn
+scikit-learn
