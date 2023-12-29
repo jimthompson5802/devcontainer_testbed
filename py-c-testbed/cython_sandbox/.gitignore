@@ -11,3 +11,6 @@ __pycache__/
 # main executable
 matrix_test_pgm
 prototypes/main
+
+# exceptions
+!matrix_multiplication_baseline.c
