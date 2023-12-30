@@ -13,4 +13,4 @@ matrix_test_pgm
 prototypes/main
 
 # exceptions
-!matrix_multiplication_baseline.c
+!matrix_multiplication_native.c
