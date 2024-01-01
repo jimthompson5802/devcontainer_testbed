@@ -13,5 +13,8 @@ matrix_test_pgm
 prototypes/main
 matrix_multiplication_native
 
+# generate plots
+*.png
+
 # exceptions
 !matrix_multiplication_native.c
